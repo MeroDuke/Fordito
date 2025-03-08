@@ -15,6 +15,9 @@ OPENAI_API_KEY = config.get("OPENAI", "API_KEY", fallback=None)
 MODEL = config.get("OPENAI", "MODEL", fallback="gpt-4-turbo")
 BATCH_SIZE = config.getint("OPENAI", "BATCH_SIZE", fallback=3)
 
+if not OPENAI_API_KEY:
+    raise ValueError("❌ Nincs megadva OpenAI API kulcs a konfigurációban!")
+
 # 📌 Fájl elérési utak
 INPUT_FILE = r"E:\\felirat_teszt\\2_translate\\subtitle.ass"
 OUTPUT_FILE = os.path.splitext(INPUT_FILE)[0] + "_translated.ass"
