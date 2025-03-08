@@ -1,36 +1,50 @@
 import os
 import subprocess
 
-# 📌 Keressük meg az MKV fájlt az aktuális mappában
-mkv_files = [f for f in os.listdir() if f.endswith(".mkv")]
+# 📌 Projektmappa és 'data' mappa meghatározása
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+DATA_DIR = os.path.join(PROJECT_DIR, "data")
+
+# 📌 Megkeressük az összes MKV és HU.ass fájlt a 'data' mappában
+mkv_files = [f for f in os.listdir(DATA_DIR) if f.endswith(".mkv")]
+ass_files = [f for f in os.listdir(DATA_DIR) if f.endswith(".ass") and ".HU." in f]
+
 if not mkv_files:
-    print("❌ Nincs MKV fájl a mappában!")
+    print("❌ Nincs MKV fájl a 'data' mappában!")
     exit(1)
-mkv_file = mkv_files[0]  # Az első talált MKV fájl
 
-# 📌 Keressük meg az "HU" azonosítót tartalmazó ASS feliratfájlt
-ass_files = [f for f in os.listdir() if f.endswith(".ass") and "HU" in f]
 if not ass_files:
-    print("❌ Nincs HU feliratfájl a mappában!")
+    print("❌ Nincs HU feliratfájl a 'data' mappában!")
     exit(1)
-ass_file = ass_files[0]
 
-# 📌 Kimeneti fájl neve (HU megjelöléssel)
-output_file = mkv_file.replace(".mkv", "_HU.mkv")
+# 📌 Párosítjuk az MKV fájlokat a megfelelő HU.ass fájlokkal
+for mkv_file in mkv_files:
+    base_name = os.path.splitext(mkv_file)[0]  # Alapnév kiterjesztés nélkül
+    matching_ass_file = next((ass for ass in ass_files if base_name in ass), None)
 
-# 📌 MKVToolNix parancs összeállítása
-command = [
-    "mkvmerge", "-o", output_file,
-    mkv_file,
-    "--language", "0:hun",
-    "--track-name", "0:Magyar",
-    ass_file
-]
+    if not matching_ass_file:
+        print(f"⚠️ Nem található megfelelő HU felirat ehhez: {mkv_file}")
+        continue  # Ha nincs párosítható felirat, ugrunk a következő MKV-ra
 
-# 📌 Parancs végrehajtása
-print(f"🚀 MKVToolNix futtatása: {' '.join(command)}")
-try:
-    subprocess.run(command, check=True)
-    print(f"✅ Sikeresen hozzáadtuk a feliratot! Kimeneti fájl: {output_file}")
-except subprocess.CalledProcessError as e:
-    print(f"❌ Hiba történt: {e}")
+    # 📌 Teljes elérési utak
+    mkv_path = os.path.join(DATA_DIR, mkv_file)
+    ass_path = os.path.join(DATA_DIR, matching_ass_file)
+    output_file = os.path.join(DATA_DIR, f"{base_name}_HU.mkv")
+
+    # 📌 MKVToolNix parancs összeállítása
+    command = [
+        "mkvmerge", "-o", output_file,
+        mkv_path,
+        "--language", "0:hun",
+        "--track-name", "0:Magyar",
+        ass_path
+    ]
+
+    # 📌 Parancs végrehajtása
+    print(f"🚀 MKVToolNix futtatása: {' '.join(command)}")
+    try:
+        subprocess.run(command, check=True)
+        print(f"✅ Sikeresen hozzáadtuk a feliratot! Kimeneti fájl: {output_file}")
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Hiba történt: {e}")
