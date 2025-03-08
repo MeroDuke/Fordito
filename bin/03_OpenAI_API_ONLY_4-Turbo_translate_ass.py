@@ -2,12 +2,18 @@ import openai
 import os
 import re
 import time
+import configparser
 from tqdm import tqdm
 
+# 📌 Konfiguráció beolvasása a config.ini fájlból
+CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "openai_config.ini")
+config = configparser.ConfigParser()
+config.read(CONFIG_PATH)
+
 # 📌 OpenAI API beállítások
-OPENAI_API_KEY = "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"  # 🔹 A saját API kulcsod
-MODEL = "gpt-4-turbo"  # 🔹 OpenAI modell
-BATCH_SIZE = 3  # 🔹 Egyszerre ennyi sort küldünk fordításra
+OPENAI_API_KEY = config.get("OPENAI", "API_KEY", fallback=None)
+MODEL = config.get("OPENAI", "MODEL", fallback="gpt-4-turbo")
+BATCH_SIZE = config.getint("OPENAI", "BATCH_SIZE", fallback=3)
 
 # 📌 Fájl elérési utak
 INPUT_FILE = r"E:\\felirat_teszt\\2_translate\\subtitle.ass"
