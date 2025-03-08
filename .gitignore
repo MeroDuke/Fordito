@@ -1,0 +1,17 @@
+# Kimeneti és ideiglenes fájlok
+data/
+logs/
+*.log
+*.tmp
+*.bak
+
+# Python fájlok és virtuális környezetek
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.env
+
+# Windows-specifikus fájlok
+Thumbs.db
+Desktop.ini
