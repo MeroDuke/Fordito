@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 import requests
 import qbittorrentapi
 import time
+import configparser
 
 # 📌 RSS feed URL – Automatikusan beállítva
 RSS_FEED_URL = "https://nyaa.si/?page=rss&c=0_0&f=2"
@@ -14,11 +15,16 @@ TRUSTED_TAG = "Yes"
 # 📌 Minőségi szűrés – Csak a legjobb verziót tölti le
 PREFERRED_QUALITY = ["WEB-DL", "HEVC", "EAC3"]
 
+# 📌 Konfiguráció beolvasása a config.ini fájlból
+CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "qbittorrent_config.ini")
+config = configparser.ConfigParser()
+config.read(CONFIG_PATH)
+
 # 📌 qBittorrent Web API beállítások
-QB_HOST = "localhost"
-QB_PORT = 8080  # Ha módosítottad, változtasd meg!
-QB_USERNAME = "pythonteszt"
-QB_PASSWORD = "pythonteszt"
+QB_HOST = config.get("QBITTORRENT", "HOST", fallback="localhost")
+QB_PORT = config.getint("QBITTORRENT", "PORT", fallback=8080)
+QB_USERNAME = config.get("QBITTORRENT", "USERNAME")
+QB_PASSWORD = config.get("QBITTORRENT", "PASSWORD")
 
 # 📌 Projektmappa és 'data' mappa meghatározása
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
