@@ -18,9 +18,32 @@ BATCH_SIZE = config.getint("OPENAI", "BATCH_SIZE", fallback=3)
 if not OPENAI_API_KEY:
     raise ValueError("❌ Nincs megadva OpenAI API kulcs a konfigurációban!")
 
-# 📌 Fájl elérési utak
-INPUT_FILE = r"E:\\felirat_teszt\\2_translate\\subtitle.ass"
-OUTPUT_FILE = os.path.splitext(INPUT_FILE)[0] + "_translated.ass"
+# 📌 Projektmappa és 'data' mappa meghatározása
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+DATA_DIR = os.path.join(PROJECT_DIR, "data")
+
+def find_ass_file(directory):
+    """
+    Megkeresi az első .EN. tartalmú .ass fájlt a megadott mappában.
+    """
+    for file in os.listdir(directory):
+        if file.endswith(".ass") and ".EN." in file:
+            return os.path.join(directory, file)
+    return None
+
+# 📌 Keresünk fordítandó fájlt
+INPUT_FILE = find_ass_file(DATA_DIR)
+
+if not INPUT_FILE:
+    print("⚠️ Nincs megfelelő .EN. tartalmú .ass fájl a 'data' mappában.")
+    exit(1)
+
+# 📌 Kimeneti fájl neve: ".EN." helyett ".HU."
+OUTPUT_FILE = INPUT_FILE.replace(".EN.", ".HU.")
+
+print(f"✅ Talált .EN. feliratfájl: {INPUT_FILE}")
+print(f"✅ A fordított fájl neve: {OUTPUT_FILE}")
 
 # 📌 OpenAI API kliens inicializálása
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
