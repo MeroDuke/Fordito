@@ -2,11 +2,24 @@ import json
 import subprocess
 import os
 
+# 📌 Projektmappa és 'data' mappa meghatározása
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+DATA_DIR = os.path.join(PROJECT_DIR, "data")
+
+def find_mkv_file(directory):
+    """
+    Megkeresi az első elérhető MKV fájlt a megadott mappában.
+    """
+    for file in os.listdir(directory):
+        if file.endswith(".mkv"):
+            return os.path.join(directory, file)
+    return None
+
 def extract_english_subtitle(mkv_file):
     """
     Kinyeri az angol feliratot egy adott MKV fájlból és .ass formátumban menti el.
     """
-    # Fájl neve kiterjesztés nélkül
     base_name = os.path.splitext(mkv_file)[0]
     output_subtitle = f"{base_name}.ass"
     
@@ -40,9 +53,7 @@ def extract_english_subtitle(mkv_file):
     print(f"✅ Angol felirat megtalálva: Track ID {track_id}")
     
     # Felirat kinyerése .ass formátumban
-    extract_command = [
-        "mkvextract", "tracks", mkv_file, f"{track_id}:{output_subtitle}"
-    ]
+    extract_command = ["mkvextract", "tracks", mkv_file, f"{track_id}:{output_subtitle}"]
     extract_result = subprocess.run(extract_command, capture_output=True, text=True)
     
     if extract_result.returncode != 0:
@@ -51,6 +62,13 @@ def extract_english_subtitle(mkv_file):
     else:
         print(f"✅ Sikeresen kinyert felirat: {output_subtitle}")
 
-# Példa használat
-mkv_file = "Welcome.to.Japan.Ms.Elf.S01E08.Welcome.to.Japan.Mrs.Arcane.Dragon.1080p.BILI.WEB-DL.AAC2.0.H.264-VARYG.mkv"  # Ezt cseréld le dinamikusan
-extract_english_subtitle(mkv_file)
+# 📌 Főprogram
+if __name__ == "__main__":
+    print(f"🔍 MKV fájl keresése a mappában: {DATA_DIR}")
+    mkv_file = find_mkv_file(DATA_DIR)
+
+    if mkv_file:
+        print(f"🎯 Talált MKV fájl: {mkv_file}")
+        extract_english_subtitle(mkv_file)
+    else:
+        print("⚠️ Nincs MKV fájl a 'data' mappában.")
