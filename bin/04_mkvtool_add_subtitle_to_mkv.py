@@ -8,14 +8,14 @@ DATA_DIR = os.path.join(PROJECT_DIR, "data")
 
 # 📌 Megkeressük az összes MKV és HU.ass fájlt a 'data' mappában
 mkv_files = [f for f in os.listdir(DATA_DIR) if f.endswith(".mkv")]
-ass_files = [f for f in os.listdir(DATA_DIR) if f.endswith(".ass") and ".HU." in f]
+ass_files = [f for f in os.listdir(DATA_DIR) if f.endswith(".ass") and "_hungarian." in f]
 
 if not mkv_files:
     print("❌ Nincs MKV fájl a 'data' mappában!")
     exit(1)
 
 if not ass_files:
-    print("❌ Nincs HU feliratfájl a 'data' mappában!")
+    print("❌ Nincs hungarian feliratfájl a 'data' mappában!")
     exit(1)
 
 # 📌 Párosítjuk az MKV fájlokat a megfelelő HU.ass fájlokkal
@@ -24,13 +24,13 @@ for mkv_file in mkv_files:
     matching_ass_file = next((ass for ass in ass_files if base_name in ass), None)
 
     if not matching_ass_file:
-        print(f"⚠️ Nem található megfelelő HU felirat ehhez: {mkv_file}")
+        print(f"⚠️ Nem található megfelelő hungarian felirat ehhez: {mkv_file}")
         continue  # Ha nincs párosítható felirat, ugrunk a következő MKV-ra
 
     # 📌 Teljes elérési utak
     mkv_path = os.path.join(DATA_DIR, mkv_file)
     ass_path = os.path.join(DATA_DIR, matching_ass_file)
-    output_file = os.path.join(DATA_DIR, f"{base_name}_HU.mkv")
+    output_file = os.path.join(DATA_DIR, f"{base_name}_hungarian.mkv")
 
     # 📌 MKVToolNix parancs összeállítása
     command = [
