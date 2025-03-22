@@ -27,11 +27,25 @@ DATA_DIR = os.path.join(PROJECT_DIR, "data")
 
 def find_ass_file(directory):
     """
-    Megkeresi az első .ass fájlt, amely tartalmazza a '_english' vagy '_japanese' kifejezést a fájlnévben.
+    Megkeresi az elsődleges .ass fájlt a következő prioritási sorrendben:
+    1. Japán felirat ('_japanese' a fájlnévben)
+    2. Angol felirat ('_english' a fájlnévben)
     """
+    japanese_file = None
+    english_file = None
+
     for file in os.listdir(directory):
-        if file.endswith(".ass") and ("_english" in file or "_japanese" in file):
-            return os.path.join(directory, file)
+        if file.endswith(".ass"):
+            if "_japanese" in file:
+                japanese_file = os.path.join(directory, file)
+            elif "_english" in file:
+                english_file = os.path.join(directory, file)
+
+    # Prioritás: Japán fájl, ha nincs, akkor angol fájl
+    if japanese_file:
+        return japanese_file
+    elif english_file:
+        return english_file
     return None
 
 
