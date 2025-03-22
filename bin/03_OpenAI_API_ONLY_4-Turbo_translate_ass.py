@@ -12,7 +12,8 @@ config.read(CONFIG_PATH)
 
 # 📌 OpenAI API beállítások
 OPENAI_API_KEY = config.get("OPENAI", "API_KEY", fallback=None)
-MODEL = config.get("OPENAI", "MODEL", fallback="gpt-4-turbo")
+MODEL_ENG = config.get("OPENAI", "MODEL_ENG", fallback="gpt-4-turbo")
+MODEL_JPN = config.get("OPENAI", "MODEL_JPN", fallback="gpt-4o")
 BATCH_SIZE = config.getint("OPENAI", "BATCH_SIZE", fallback=3)
 
 if not OPENAI_API_KEY:
@@ -23,45 +24,59 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
 
+
 def find_ass_file(directory):
     """
-    Megkeresi az első .EN. tartalmú .ass fájlt a megadott mappában.
+    Megkeresi az első .ass fájlt, amely tartalmazza a '_english' vagy '_japanese' kifejezést a fájlnévben.
     """
     for file in os.listdir(directory):
-        if file.endswith(".ass") and ".EN." in file:
+        if file.endswith(".ass") and ("_english" in file or "_japanese" in file):
             return os.path.join(directory, file)
     return None
+
 
 # 📌 Keresünk fordítandó fájlt
 INPUT_FILE = find_ass_file(DATA_DIR)
 
 if not INPUT_FILE:
-    print("⚠️ Nincs megfelelő .EN. tartalmú .ass fájl a 'data' mappában.")
+    print("⚠️ Nincs megfelelő .ass fájl a 'data' mappában.")
     exit(1)
 
-# 📌 Kimeneti fájl neve: ".EN." helyett ".HU."
-OUTPUT_FILE = INPUT_FILE.replace(".EN.", ".HU.")
+# 📌 Modell kiválasztása fájlnév alapján
+if "_english" in INPUT_FILE:
+    MODEL = MODEL_ENG
+elif "_japanese" in INPUT_FILE:
+    MODEL = MODEL_JPN
+else:
+    print("❌ Ismeretlen nyelvi fájlformátum.")
+    exit(1)
 
-print(f"✅ Talált .EN. feliratfájl: {INPUT_FILE}")
+# 📌 Kimeneti fájl neve
+OUTPUT_FILE = INPUT_FILE.replace("_english", "_hungarian").replace("_japanese", "_hungarian")
+
+print(f"✅ Talált feliratfájl: {INPUT_FILE}")
+print(f"✅ Használt modell: {MODEL}")
 print(f"✅ A fordított fájl neve: {OUTPUT_FILE}")
+
 
 # 📌 OpenAI API kliens inicializálása
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 def translate_with_openai(text_list):
-    """ OpenAI GPT-4 Turbo segítségével fordít szövegeket """
+    """ OpenAI segítségével fordít szövegeket """
     try:
         response = client.chat.completions.create(
             model=MODEL,
             messages=[
-                {"role": "system", "content": "You are a professional translator. Translate the following English subtitles to Hungarian while preserving formatting."},
+                {"role": "system", "content": "You are a professional translator. Translate the following text to Hungarian while preserving formatting."},
                 {"role": "user", "content": "\n".join(text_list)}
             ]
         )
-        return response.choices[0].message.content.split("\n")  # 🔹 Sorokra bontás
+        return response.choices[0].message.content.split("\n")
     except Exception as e:
         print(f"⚠️ OpenAI API hiba: {e}")
-        return text_list  # 🔹 Ha hiba van, visszaadjuk az eredeti szöveget
+        return text_list
+
 
 # 📌 ASS fájl beolvasása és fordítása
 with open(INPUT_FILE, "r", encoding="utf-8") as f:
@@ -92,9 +107,10 @@ with tqdm(total=len(lines), desc="🔄 Fordítás folyamatban", unit="sor") as p
                     batch = []
                     original_prefixes = []
 
-                time.sleep(1)  # 🔹 OpenAI API túlterhelés elkerülése
+                time.sleep(1)
         else:
             translated_lines.append(line)
+
 
 # 📌 Fordított fájl mentése
 with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
