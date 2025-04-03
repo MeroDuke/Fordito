@@ -5,6 +5,9 @@ logs/
 *.tmp
 *.bak
 
+# Konfigurációs fájlok
+config/openai_config.ini
+
 # Python fájlok és virtuális környezetek
 __pycache__/
 *.pyc
