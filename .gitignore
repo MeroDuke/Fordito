@@ -6,7 +6,7 @@ logs/
 *.bak
 
 # Konfigurációs fájlok
-
+config/credentials.ini
 
 # Python fájlok és virtuális környezetek
 __pycache__/
