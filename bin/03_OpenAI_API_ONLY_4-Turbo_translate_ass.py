@@ -5,25 +5,30 @@ import time
 import configparser
 from tqdm import tqdm
 
-# 📌 Konfiguráció beolvasása a config.ini fájlból
-CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "openai_config.ini")
+# 📌 Konfigurációs fájlok beolvasása
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OPENAI_CONFIG_PATH = os.path.join(BASE_DIR, "config", "openai_config.ini")
+CREDENTIALS_PATH = os.path.join(BASE_DIR, "config", "credentials.ini")
+
 config = configparser.ConfigParser()
-config.read(CONFIG_PATH)
+config.read(OPENAI_CONFIG_PATH)
+
+secrets = configparser.ConfigParser()
+secrets.read(CREDENTIALS_PATH)
 
 # 📌 OpenAI API beállítások
-OPENAI_API_KEY = config.get("OPENAI", "API_KEY", fallback=None)
+OPENAI_API_KEY = secrets.get("OPENAI", "API_KEY", fallback=None)
 MODEL_ENG = config.get("OPENAI", "MODEL_ENG", fallback="gpt-4-turbo")
 MODEL_JPN = config.get("OPENAI", "MODEL_JPN", fallback="gpt-4o")
 BATCH_SIZE = config.getint("OPENAI", "BATCH_SIZE", fallback=3)
 
 if not OPENAI_API_KEY:
-    raise ValueError("❌ Nincs megadva OpenAI API kulcs a konfigurációban!")
+    raise ValueError("❌ Nincs megadva OpenAI API kulcs a credentials.ini konfigurációban!")
 
 # 📌 Projektmappa és 'data' mappa meghatározása
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
-
 
 def find_ass_file(directory):
     """
@@ -41,13 +46,11 @@ def find_ass_file(directory):
             elif "_english" in file:
                 english_file = os.path.join(directory, file)
 
-    # Prioritás: Japán fájl, ha nincs, akkor angol fájl
     if japanese_file:
         return japanese_file
     elif english_file:
         return english_file
     return None
-
 
 # 📌 Keresünk fordítandó fájlt
 INPUT_FILE = find_ass_file(DATA_DIR)
@@ -72,7 +75,6 @@ print(f"✅ Talált feliratfájl: {INPUT_FILE}")
 print(f"✅ Használt modell: {MODEL}")
 print(f"✅ A fordított fájl neve: {OUTPUT_FILE}")
 
-
 # 📌 OpenAI API kliens inicializálása
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
@@ -90,7 +92,6 @@ def translate_with_openai(text_list):
     except Exception as e:
         print(f"⚠️ OpenAI API hiba: {e}")
         return text_list
-
 
 # 📌 ASS fájl beolvasása és fordítása
 with open(INPUT_FILE, "r", encoding="utf-8") as f:
@@ -124,7 +125,6 @@ with tqdm(total=len(lines), desc="🔄 Fordítás folyamatban", unit="sor") as p
                 time.sleep(1)
         else:
             translated_lines.append(line)
-
 
 # 📌 Fordított fájl mentése
 with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
