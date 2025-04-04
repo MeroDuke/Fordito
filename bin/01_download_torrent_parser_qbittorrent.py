@@ -36,7 +36,6 @@ qb = qbittorrentapi.Client(host=QB_HOST, port=QB_PORT, username=QB_USERNAME, pas
 qb.auth_log_in()
 
 def download_rss():
-    """ Letölti a legfrissebb RSS feedet """
     response = requests.get(RSS_FEED_URL)
     if response.status_code == 200:
         return response.content
@@ -45,51 +44,48 @@ def download_rss():
         return None
 
 def parse_rss(rss_data):
-    """ Kiolvassa az RSS-ből a megfelelő torrenteket """
     root = ET.fromstring(rss_data)
     namespaces = {'nyaa': 'https://nyaa.si/xmlns/nyaa'}
-
     best_torrent = None
-
     for item in root.findall(".//item"):
         title = item.find("title").text
         link = item.find("link").text
         trusted = item.find("nyaa:trusted", namespaces)
-
         if all(keyword.lower() in title.lower() for keyword in KEYWORDS) and (trusted is not None and trusted.text == TRUSTED_TAG):
             if any(q in title for q in PREFERRED_QUALITY):
                 best_torrent = {"title": title, "link": link}
-
     return best_torrent
 
 def add_torrent_to_qbittorrent(torrent_url):
-    """ Hozzáadja a torrentet a qBittorrent klienshez a 'data' mappába """
     try:
-        qb.torrents_add(urls=torrent_url, save_path=DATA_DIR)  # 📌 Itt adjuk meg a letöltési mappát
+        qb.torrents_add(urls=torrent_url, save_path=DATA_DIR)
         print(f"✅ Torrent sikeresen hozzáadva a qBittorrenthez: {torrent_url}")
-        print(f"📁 Letöltési mappa: {DATA_DIR}")
-
-        # 📌 Várunk egy pár másodpercet, hogy a torrent biztosan regisztrálódjon
-        time.sleep(10)  # 10 másodperc várakozási idő
-
+        time.sleep(5)
+        torrents = sorted(qb.torrents_info(), key=lambda t: t.added_on, reverse=True)
+        if torrents:
+            latest_torrent = torrents[0]
+            print(f"🔑 Követett torrent: {latest_torrent.name} | Hash: {latest_torrent.hash}")
+            return latest_torrent.hash
+        else:
+            print("⚠️ Nem találtunk torrentet a listában a hozzáadás után.")
+            return None
     except Exception as e:
         print(f"⚠️ Hiba történt a torrent hozzáadásakor: {e}")
+        return None
 
-def get_torrents_list():
-    """ Lekéri az összes torrentet a qBittorrent kliensből """
+def get_torrent_status(torrent_hash):
     try:
-        torrents = qb.torrents_info()  # Lekérjük a torrentek listáját
-        if torrents:
-            for torrent in torrents:
-                print(f"🎯 {torrent.name} | Állapot: {torrent.state} | Haladás: {torrent.progress * 100:.2f}%")
-                if torrent.progress == 1.0:  # 100%-os letöltés
-                    print(f"✅ A torrent letöltése befejeződött: {torrent.name}")
-                    return True  # Ha a torrent letöltése befejeződött, visszatérünk True-val
+        torrent = qb.torrents_info(torrent_hashes=torrent_hash)
+        if torrent:
+            t = torrent[0]
+            print(f"🎯 {t.name} | Állapot: {t.state} | Haladás: {t.progress * 100:.2f}%")
+            if t.progress == 1.0:
+                print(f"✅ A torrent letöltése befejeződött: {t.name}")
+                return True
         else:
-            print("⚠️ Nincsenek aktív torrentek a qBittorrent kliensben.")
+            print("⚠️ A torrent nem található.")
     except Exception as e:
-        print(f"⚠️ Hiba történt a torrentek lekérésekor: {e}")
-
+        print(f"⚠️ Hiba történt a torrent lekérdezésekor: {e}")
     return False
 
 # 📌 Főprogram
@@ -103,15 +99,13 @@ if __name__ == "__main__":
 
         if best_torrent:
             print(f"🎯 **Legjobb torrent kiválasztva:** {best_torrent['title']}")
-            add_torrent_to_qbittorrent(best_torrent["link"])
+            torrent_hash = add_torrent_to_qbittorrent(best_torrent["link"])
+            if torrent_hash:
+                print("🔄 Letöltés figyelése...")
+                while True:
+                    if get_torrent_status(torrent_hash):
+                        print("✅ A letöltés befejeződött. Folytathatjuk a munkát a fájllal.")
+                        break
+                    time.sleep(5)
         else:
             print("⚠️ **Nem találtunk megfelelő torrentet!**")
-
-    # 📌 Folyamatos figyelés a torrent letöltési állapotáról
-    print("🔄 Letöltés figyelése...")
-    while True:
-        download_complete = get_torrents_list()
-        if download_complete:
-            print("✅ A letöltés befejeződött. Folytathatjuk a munkát a fájllal.")
-            break
-        time.sleep(5)  # Várjunk 5 másodpercet az újabb ellenőrzés előtt
