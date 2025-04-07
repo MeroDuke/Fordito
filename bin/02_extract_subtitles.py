@@ -36,9 +36,12 @@ def find_mkv_file(directory):
     return None
 
 
-def extract_subtitle(mkv_file, language_codes, output_suffix):
+def extract_subtitle(mkv_file, language_codes, output_suffix, fallback_track_name=None):
     """
     Kinyeri a megadott nyelvű feliratot egy adott MKV fájlból és .ass formátumban menti el.
+    
+    Ha a language_codes alapján nem található track, és a fallback_track_name meg van adva,
+    akkor megpróbálja a track_name értékét vizsgálni.
     """
     base_name = os.path.splitext(mkv_file)[0]
     output_subtitle = f"{base_name}_{output_suffix}.ass"
@@ -57,7 +60,7 @@ def extract_subtitle(mkv_file, language_codes, output_suffix):
         print(e)
         return
 
-    # Megkeressük a felirat track-et a megadott nyelvkódokkal
+    # Keresünk egy megadott nyelvű feliratot
     subtitle_track = next(
         (
             track for track in mkv_info.get("tracks", [])
@@ -65,6 +68,18 @@ def extract_subtitle(mkv_file, language_codes, output_suffix):
         ),
         None
     )
+
+    # Ha nem található a nyelvi kód alapján, próbáljuk a fallback-et a track_name alapján, ha van fallback_track_name
+    if not subtitle_track and fallback_track_name:
+        subtitle_track = next(
+            (
+                track for track in mkv_info.get("tracks", [])
+                if track.get("type") == "subtitles" and fallback_track_name.lower() in track.get("properties", {}).get("track_name", "").lower()
+            ),
+            None
+        )
+        if subtitle_track:
+            print(f"ℹ️ Fallback: {output_suffix} felirat kinyerése a track_name alapján ('{fallback_track_name}')")
 
     if not subtitle_track:
         print(f"❌ Nem található {output_suffix} felirat a fájlban.")
@@ -97,9 +112,9 @@ if __name__ == "__main__":
 
     if mkv_file:
         print(f"🎯 Talált MKV fájl: {mkv_file}")
-        # Angol felirat kinyerése
+        # Angol felirat kinyerése (nyelvi kód alapján)
         extract_subtitle(mkv_file, ["eng", "en"], "english")
-        # Japán felirat kinyerése
-        extract_subtitle(mkv_file, ["jpn", "ja"], "japanese")
+        # Japán felirat kinyerése: ha nem találunk "jpn"/"ja" kódot, fallbackként megkeressük a track_name-ben az "ass" szót
+        extract_subtitle(mkv_file, ["jpn", "ja"], "japanese", fallback_track_name="ass")
     else:
         print("⚠️ Nincs MKV fájl a 'data' mappában.")
