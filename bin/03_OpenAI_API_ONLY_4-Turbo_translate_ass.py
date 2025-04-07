@@ -1,6 +1,5 @@
 import openai
 import os
-import re
 import time
 import configparser
 from tqdm import tqdm
@@ -19,7 +18,7 @@ secrets.read(CREDENTIALS_PATH)
 # 📌 OpenAI API beállítások
 OPENAI_API_KEY = secrets.get("OPENAI", "API_KEY", fallback=None)
 MODEL_ENG = config.get("OPENAI", "MODEL_ENG", fallback="gpt-4-turbo")
-MODEL_JPN = config.get("OPENAI", "MODEL_JPN", fallback="gpt-4o")
+MODEL_JPN = config.get("OPENAI", "MODEL_ENG", fallback="gpt-4o")
 BATCH_SIZE = config.getint("OPENAI", "BATCH_SIZE", fallback=3)
 
 if not OPENAI_API_KEY:
@@ -45,12 +44,7 @@ def find_ass_file(directory):
                 japanese_file = os.path.join(directory, file)
             elif "_english" in file:
                 english_file = os.path.join(directory, file)
-
-    if japanese_file:
-        return japanese_file
-    elif english_file:
-        return english_file
-    return None
+    return japanese_file or english_file
 
 # 📌 Keresünk fordítandó fájlt
 INPUT_FILE = find_ass_file(DATA_DIR)
@@ -75,25 +69,37 @@ print(f"✅ Talált feliratfájl: {INPUT_FILE}")
 print(f"✅ Használt modell: {MODEL}")
 print(f"✅ A fordított fájl neve: {OUTPUT_FILE}")
 
-# 📌 OpenAI API kliens inicializálása
-client = openai.OpenAI(api_key=OPENAI_API_KEY)
+# 📌 OpenAI API kulcs beállítása
+openai.api_key = OPENAI_API_KEY
 
 def translate_with_openai(text_list):
-    """ OpenAI segítségével fordít szövegeket """
+    """OpenAI segítségével fordítja le a megadott szövegeket egy egyedi elválasztó használatával."""
+    delimiter = "|||"
     try:
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model=MODEL,
             messages=[
-                {"role": "system", "content": "You are a professional translator. Translate the following text to Hungarian while preserving formatting."},
-                {"role": "user", "content": "\n".join(text_list)}
+                {"role": "system", "content": (
+                    "You are a professional translator. "
+                    "Translate each of the following lines to Hungarian. "
+                    f"Output the translations exactly separated by '{delimiter}'. "
+                    "Do not output anything else."
+                )},
+                {"role": "user", "content": delimiter.join(text_list)}
             ]
         )
-        return response.choices[0].message.content.split("\n")
+        output = response.choices[0].message.content.strip()
+        translations = output.split(delimiter)
+        # Tisztítjuk az esetleges fölösleges szóközöket
+        translations = [t.strip() for t in translations if t.strip()]
+        if len(translations) != len(text_list):
+            print(f"⚠️ Warning: Expected {len(text_list)} translations, but got {len(translations)}.")
+        return translations
     except Exception as e:
         print(f"⚠️ OpenAI API hiba: {e}")
         return text_list
 
-# 📌 ASS fájl beolvasása és fordítása
+# 📌 ASS fájl beolvasása
 with open(INPUT_FILE, "r", encoding="utf-8") as f:
     lines = f.readlines()
 
@@ -101,7 +107,10 @@ translated_lines = []
 batch = []
 original_prefixes = []
 
-with tqdm(total=len(lines), desc="🔄 Fordítás folyamatban", unit="sor") as pbar:
+# Számoljuk meg a fordítandó "Dialogue:" sorokat a progress bar pontos működéséhez
+dialogue_count = sum(1 for line in lines if line.startswith("Dialogue:"))
+
+with tqdm(total=dialogue_count, desc="🔄 Fordítás folyamatban", unit="sor") as pbar:
     for line in lines:
         if line.startswith("Dialogue:"):
             last_comma_idx = line.rfind(",,")
@@ -114,17 +123,25 @@ with tqdm(total=len(lines), desc="🔄 Fordítás folyamatban", unit="sor") as p
 
                 if len(batch) >= BATCH_SIZE:
                     translated_batch = translate_with_openai(batch)
-
-                    for j, translated_text in enumerate(translated_batch):
-                        translated_lines.append(f"{original_prefixes[j]}{translated_text}\n")
+                    # Biztonságos iterálás a kisebb lista hosszával
+                    for j in range(min(len(original_prefixes), len(translated_batch))):
+                        translated_lines.append(f"{original_prefixes[j]}{translated_batch[j]}\n")
                         pbar.update(1)
-
                     batch = []
                     original_prefixes = []
-
-                time.sleep(1)
+                    time.sleep(1)  # Várakozás az API hívások között
+            else:
+                translated_lines.append(line)
+                pbar.update(1)
         else:
             translated_lines.append(line)
+    # Feldolgozzuk a maradék (részleges) batch-et is
+    if batch:
+        translated_batch = translate_with_openai(batch)
+        for j in range(min(len(original_prefixes), len(translated_batch))):
+            translated_lines.append(f"{original_prefixes[j]}{translated_batch[j]}\n")
+            pbar.update(1)
+        time.sleep(1)
 
 # 📌 Fordított fájl mentése
 with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
