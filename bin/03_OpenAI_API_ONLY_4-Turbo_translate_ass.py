@@ -18,7 +18,7 @@ secrets.read(CREDENTIALS_PATH)
 # 📌 OpenAI API beállítások
 OPENAI_API_KEY = secrets.get("OPENAI", "API_KEY", fallback=None)
 MODEL_ENG = config.get("OPENAI", "MODEL_ENG", fallback="gpt-4-turbo")
-MODEL_JPN = config.get("OPENAI", "MODEL_ENG", fallback="gpt-4o")
+MODEL_JPN = config.get("OPENAI", "MODEL_JPN", fallback="gpt-4o")
 BATCH_SIZE = config.getint("OPENAI", "BATCH_SIZE", fallback=3)
 
 if not OPENAI_API_KEY:
