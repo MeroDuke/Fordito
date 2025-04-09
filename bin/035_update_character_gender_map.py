@@ -11,6 +11,10 @@ DATA_DIR = os.path.join(PROJECT_DIR, "data")
 SPEAKER_FILE = os.path.join(USERDATA_DIR, "speakers.txt")
 COLOR_MAP_FILE = os.path.join(USERDATA_DIR, "character_color_map.json")
 
+DEFAULT_FONT = "Trebuchet MS"
+
+os.makedirs(USERDATA_DIR, exist_ok=True)
+
 # 📌 character_color_map betöltése vagy inicializálása
 if os.path.exists(COLOR_MAP_FILE):
     with open(COLOR_MAP_FILE, "r", encoding="utf-8") as f:
@@ -80,10 +84,12 @@ if style_default and format_line:
     format_fields = [f.strip().lower() for f in format_line.split(":", 1)[1].split(",")]
     color_idx = format_fields.index("primarycolour")
     name_idx = 0
+    font_idx = format_fields.index("fontname")
     for character, color in color_map.items():
         new_parts = parts.copy()
         new_parts[name_idx] = f"Char_{character}"
         new_parts[color_idx] = color
+        new_parts[font_idx] = DEFAULT_FONT
         new_styles.append("Style: " + ",".join(new_parts) + "\n")
 
 # 📌 Beszúrjuk az új Style-okat, ha még nem léteznek
