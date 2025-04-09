@@ -81,7 +81,8 @@ def translate_with_openai(text_list):
             messages=[
                 {"role": "system", "content": (
                     "You are a professional translator. "
-                    "Translate each of the following lines to Hungarian. "
+                    "Translate each of the following lines to natural, idiomatic, and conversational Hungarian. "
+                    "Avoid literal translations. Instead, preserve the intended tone, mood, and context of each line. "
                     f"Output the translations exactly separated by '{delimiter}'. "
                     "Do not output anything else."
                 )},
