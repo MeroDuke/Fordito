@@ -29,6 +29,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
 
+
 def find_ass_file(directory):
     """
     Megkeresi az elsődleges .ass fájlt a következő prioritási sorrendben:
@@ -45,6 +46,7 @@ def find_ass_file(directory):
             elif "_english" in file:
                 english_file = os.path.join(directory, file)
     return japanese_file or english_file
+
 
 # 📌 Keresünk fordítandó fájlt
 INPUT_FILE = find_ass_file(DATA_DIR)
@@ -72,6 +74,7 @@ print(f"✅ A fordított fájl neve: {OUTPUT_FILE}")
 # 📌 OpenAI API kulcs beállítása
 openai.api_key = OPENAI_API_KEY
 
+
 def translate_with_openai(text_list):
     """OpenAI segítségével fordítja le a megadott szövegeket egy egyedi elválasztó használatával."""
     delimiter = "|||"
@@ -91,7 +94,6 @@ def translate_with_openai(text_list):
         )
         output = response.choices[0].message.content.strip()
         translations = output.split(delimiter)
-        # Tisztítjuk az esetleges fölösleges szóközöket
         translations = [t.strip() for t in translations if t.strip()]
         if len(translations) != len(text_list):
             print(f"⚠️ Warning: Expected {len(text_list)} translations, but got {len(translations)}.")
@@ -100,20 +102,36 @@ def translate_with_openai(text_list):
         print(f"⚠️ OpenAI API hiba: {e}")
         return text_list
 
+
 # 📌 ASS fájl beolvasása
 with open(INPUT_FILE, "r", encoding="utf-8") as f:
     lines = f.readlines()
+
+# 🌟 Beszélőnevek kigyűjtése a fordítás előtt
+unique_names = set()
+for line in lines:
+    if line.strip().lower().startswith("dialogue:"):
+        parts = line.split(",", 10)
+        if len(parts) >= 2:
+            name = parts[4].strip()
+            if name:
+                unique_names.add(name)
 
 translated_lines = []
 batch = []
 original_prefixes = []
 
 # Számoljuk meg a fordítandó "Dialogue:" sorokat a progress bar pontos működéséhez
-dialogue_count = sum(1 for line in lines if line.startswith("Dialogue:"))
+dialogue_count = sum(1 for line in lines if line.strip().lower().startswith("dialogue:"))
 
 with tqdm(total=dialogue_count, desc="🔄 Fordítás folyamatban", unit="sor") as pbar:
     for line in lines:
-        if line.startswith("Dialogue:"):
+        if line.strip().lower().startswith("dialogue:"):
+            parts = line.split(",", 10)
+            if len(parts) >= 2:
+                name = parts[4].strip()
+                # név már korábban kigyűjtve
+
             last_comma_idx = line.rfind(",,")
             if last_comma_idx != -1:
                 text_to_translate = line[last_comma_idx + 2:].strip()
@@ -124,19 +142,17 @@ with tqdm(total=dialogue_count, desc="🔄 Fordítás folyamatban", unit="sor") 
 
                 if len(batch) >= BATCH_SIZE:
                     translated_batch = translate_with_openai(batch)
-                    # Biztonságos iterálás a kisebb lista hosszával
                     for j in range(min(len(original_prefixes), len(translated_batch))):
                         translated_lines.append(f"{original_prefixes[j]}{translated_batch[j]}\n")
                         pbar.update(1)
                     batch = []
                     original_prefixes = []
-                    time.sleep(1)  # Várakozás az API hívások között
+                    time.sleep(1)
             else:
                 translated_lines.append(line)
                 pbar.update(1)
         else:
             translated_lines.append(line)
-    # Feldolgozzuk a maradék (részleges) batch-et is
     if batch:
         translated_batch = translate_with_openai(batch)
         for j in range(min(len(original_prefixes), len(translated_batch))):
@@ -148,4 +164,14 @@ with tqdm(total=dialogue_count, desc="🔄 Fordítás folyamatban", unit="sor") 
 with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
     f.writelines(translated_lines)
 
+# 📌 Nevek mentése a 'userdata' mappába
+USERDATA_DIR = os.path.join(PROJECT_DIR, "userdata")
+os.makedirs(USERDATA_DIR, exist_ok=True)
+speaker_output_path = os.path.join(USERDATA_DIR, "speakers.txt")
+
+with open(speaker_output_path, "w", encoding="utf-8") as f:
+    for name in sorted(unique_names):
+        f.write(name + "\n")
+
 print(f"✅ Fordítás kész! Mentve: {OUTPUT_FILE}")
+print(f"📂 Beszélőnevek mentve: {speaker_output_path}")
