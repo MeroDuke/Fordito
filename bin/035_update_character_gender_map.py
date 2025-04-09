@@ -1,5 +1,6 @@
 import os
 import json
+import hashlib
 
 # 📌 Mappák és fájlnevek
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -8,32 +9,32 @@ USERDATA_DIR = os.path.join(PROJECT_DIR, "userdata")
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
 
 SPEAKER_FILE = os.path.join(USERDATA_DIR, "speakers.txt")
-GENDER_MAP_FILE = os.path.join(USERDATA_DIR, "character_gender_map.json")
-COLOR_MAP_FILE = os.path.join(USERDATA_DIR, "gender_color_map.json")
+COLOR_MAP_FILE = os.path.join(USERDATA_DIR, "character_color_map.json")
 
-# 📌 character_gender_map betöltése
-gender_map = {}
-if os.path.exists(GENDER_MAP_FILE):
-    with open(GENDER_MAP_FILE, "r", encoding="utf-8") as f:
-        gender_map = json.load(f)
+# 📌 character_color_map betöltése vagy inicializálása
+if os.path.exists(COLOR_MAP_FILE):
+    with open(COLOR_MAP_FILE, "r", encoding="utf-8") as f:
+        color_map = json.load(f)
+else:
+    color_map = {}
 
-# 📌 Új nevek hozzáadása speakers.txt alapján
+# 📌 Új karakterek színének generálása
 if os.path.exists(SPEAKER_FILE):
     with open(SPEAKER_FILE, "r", encoding="utf-8") as f:
         for line in f:
             name = line.strip()
-            if name and name not in gender_map:
-                gender_map[name] = "unknown"
+            if name and name not in color_map:
+                h = hashlib.md5(name.encode()).hexdigest()
+                r = int(h[0:2], 16)
+                g = int(h[2:4], 16)
+                b = int(h[4:6], 16)
+                color_map[name] = f"&H{b:02X}{g:02X}{r:02X}&"
 
-# 📌 character_gender_map mentése
-with open(GENDER_MAP_FILE, "w", encoding="utf-8") as f:
-    json.dump(gender_map, f, ensure_ascii=False, indent=2)
+# 📌 character_color_map mentése
+with open(COLOR_MAP_FILE, "w", encoding="utf-8") as f:
+    json.dump(color_map, f, ensure_ascii=False, indent=2)
 
-print(f"✅ Névlista frissítve: {GENDER_MAP_FILE}")
-
-# 📌 gender_color_map betöltése
-with open(COLOR_MAP_FILE, "r", encoding="utf-8") as f:
-    color_map = json.load(f)
+print(f"✅ Színtérkép frissítve: {COLOR_MAP_FILE}")
 
 # 📌 Hungarian .ass fájl keresése
 input_ass = None
@@ -79,9 +80,9 @@ if style_default and format_line:
     format_fields = [f.strip().lower() for f in format_line.split(":", 1)[1].split(",")]
     color_idx = format_fields.index("primarycolour")
     name_idx = 0
-    for gender, color in color_map.items():
+    for character, color in color_map.items():
         new_parts = parts.copy()
-        new_parts[name_idx] = f"Char_{gender.capitalize()}"
+        new_parts[name_idx] = f"Char_{character}"
         new_parts[color_idx] = color
         new_styles.append("Style: " + ",".join(new_parts) + "\n")
 
@@ -101,8 +102,7 @@ for line in lines:
         parts = line.split(",", 10)
         if len(parts) >= 4:
             name = parts[4].strip()
-            gender = gender_map.get(name, "unknown")
-            style_name = f"Char_{gender.capitalize()}"
+            style_name = f"Char_{name}"
             parts[3] = style_name
             updated_line = ",".join(parts)
             updated_lines.append(updated_line)
