@@ -5,20 +5,18 @@ import qbittorrentapi
 import time
 import configparser
 
-# 📌 RSS feed URL – Automatikusan beállítva
-RSS_FEED_URL = "https://nyaa.si/?page=rss&c=0_0&f=2"
-
-# 📌 Szűrési feltételek
-KEYWORDS = ["1080p", "multisub"]
-TRUSTED_TAG = "Yes"
-
-# 📌 Minőségi szűrés – Csak a legjobb verziót tölti le
-PREFERRED_QUALITY = ["WEB-DL", "HEVC", "EAC3"]
-
 # 📌 Konfiguráció beolvasása a config.ini fájlból
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "qbittorrent_config.ini")
 config = configparser.ConfigParser()
 config.read(CONFIG_PATH)
+
+# 📌 RSS szűrési feltételek (configból)
+KEYWORDS = [k.strip() for k in config.get("FILTER", "KEYWORDS", fallback="1080p, multisub").split(",")]
+PREFERRED_QUALITY = [q.strip() for q in config.get("FILTER", "PREFERRED_QUALITY", fallback="WEB-DL, HEVC, EAC3").split(",")]
+
+# 📌 Alap RSS feed URL 
+RSS_FEED_URL = "https://nyaa.si/?page=rss&c=0_0&f=2"
+TRUSTED_TAG = "Yes"
 
 # 📌 qBittorrent Web API beállítások
 QB_HOST = config.get("QBITTORRENT", "HOST", fallback="localhost")
@@ -78,7 +76,7 @@ def get_torrent_status(torrent_hash):
         torrent = qb.torrents_info(torrent_hashes=torrent_hash)
         if torrent:
             t = torrent[0]
-            print(f"🎯 {t.name} | Állapot: {t.state} | Haladás: {t.progress * 100:.2f}%")
+            print(f"🌟 {t.name} | Állapot: {t.state} | Haladás: {t.progress * 100:.2f}%")
             if t.progress == 1.0:
                 print(f"✅ A torrent letöltése befejeződött: {t.name}")
                 return True
@@ -98,7 +96,7 @@ if __name__ == "__main__":
         best_torrent = parse_rss(rss_data)
 
         if best_torrent:
-            print(f"🎯 **Legjobb torrent kiválasztva:** {best_torrent['title']}")
+            print(f"🌟 **Legjobb torrent kiválasztva:** {best_torrent['title']}")
             torrent_hash = add_torrent_to_qbittorrent(best_torrent["link"])
             if torrent_hash:
                 print("🔄 Letöltés figyelése...")
