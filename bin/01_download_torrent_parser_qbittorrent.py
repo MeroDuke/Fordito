@@ -13,8 +13,9 @@ config.read(CONFIG_PATH)
 # 📌 RSS szűrési feltételek (configból)
 KEYWORDS = [k.strip() for k in config.get("FILTER", "KEYWORDS", fallback="1080p, multisub").split(",")]
 PREFERRED_QUALITY = [q.strip() for q in config.get("FILTER", "PREFERRED_QUALITY", fallback="WEB-DL, HEVC, EAC3").split(",")]
+TARGET_TORRENT_MATCH = [t.strip().lower() for t in config.get("DOWNLOAD", "TARGET_TORRENT_MATCH", fallback="").split(",") if t.strip()]
 
-# 📌 Alap RSS feed URL 
+# 📌 Alap RSS feed URL – Ez maradhat hardcode-olva, ha nem akarjuk configból
 RSS_FEED_URL = "https://nyaa.si/?page=rss&c=0_0&f=2"
 TRUSTED_TAG = "Yes"
 
@@ -49,6 +50,13 @@ def parse_rss(rss_data):
         title = item.find("title").text
         link = item.find("link").text
         trusted = item.find("nyaa:trusted", namespaces)
+
+        if TARGET_TORRENT_MATCH:
+            if all(term in title.lower() for term in TARGET_TORRENT_MATCH):
+                print(f"🔍 Talált torrent a megadott kulcsszavak alapján: {title}")
+                return {"title": title, "link": link}
+            continue
+
         if all(keyword.lower() in title.lower() for keyword in KEYWORDS) and (trusted is not None and trusted.text == TRUSTED_TAG):
             if any(q in title for q in PREFERRED_QUALITY):
                 best_torrent = {"title": title, "link": link}
