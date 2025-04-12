@@ -11,9 +11,11 @@ DATA_DIR = os.path.join(PROJECT_DIR, "data")
 SPEAKER_FILE = os.path.join(USERDATA_DIR, "speakers.txt")
 COLOR_MAP_FILE = os.path.join(USERDATA_DIR, "character_color_map.json")
 
-DEFAULT_FONT = "Trebuchet MS"
+# 📌 Szín világosságának becslése
+def perceived_brightness(r, g, b):
+    return (r * 299 + g * 587 + b * 114) / 1000
 
-os.makedirs(USERDATA_DIR, exist_ok=True)
+BRIGHTNESS_THRESHOLD = 180  # Világos színek kiszűrésére
 
 # 📌 character_color_map betöltése vagy inicializálása
 if os.path.exists(COLOR_MAP_FILE):
@@ -32,6 +34,13 @@ if os.path.exists(SPEAKER_FILE):
                 r = int(h[0:2], 16)
                 g = int(h[2:4], 16)
                 b = int(h[4:6], 16)
+
+                # Túl világos? Sötétítsük.
+                if perceived_brightness(r, g, b) > BRIGHTNESS_THRESHOLD:
+                    r = int(r * 0.5)
+                    g = int(g * 0.5)
+                    b = int(b * 0.5)
+
                 color_map[name] = f"&H{b:02X}{g:02X}{r:02X}&"
 
 # 📌 character_color_map mentése
@@ -82,14 +91,14 @@ new_styles = []
 if style_default and format_line:
     parts = style_default.split(",")
     format_fields = [f.strip().lower() for f in format_line.split(":", 1)[1].split(",")]
-    color_idx = format_fields.index("primarycolour")
+    color_idx = format_fields.index("outlinecolour")
     name_idx = 0
-    font_idx = format_fields.index("fontname")
+    fontname_idx = format_fields.index("fontname")
     for character, color in color_map.items():
         new_parts = parts.copy()
         new_parts[name_idx] = f"Char_{character}"
         new_parts[color_idx] = color
-        new_parts[font_idx] = DEFAULT_FONT
+        new_parts[fontname_idx] = "Trebuchet MS"
         new_styles.append("Style: " + ",".join(new_parts) + "\n")
 
 # 📌 Beszúrjuk az új Style-okat, ha még nem léteznek
