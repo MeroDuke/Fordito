@@ -22,9 +22,15 @@ KEYWORDS = [k.strip() for k in config.get("FILTER", "KEYWORDS", fallback="1080p,
 PREFERRED_QUALITY = [q.strip() for q in config.get("FILTER", "PREFERRED_QUALITY", fallback="WEB-DL, HEVC, EAC3").split(",")]
 TARGET_TORRENT_MATCH = [t.strip().lower() for t in config.get("DOWNLOAD", "TARGET_TORRENT_MATCH", fallback="").split(",") if t.strip()]
 
-# 📌 Alap RSS feed URL – Ez maradhat hardcode-olva, ha nem akarjuk configból
-RSS_FEED_URL = "https://nyaa.si/?page=rss&c=0_0&f=2"
-TRUSTED_TAG = "Yes"
+# 📌 TRUSTED_TAG beolvasása konfigból
+trusted_tag_raw = config.get("DOWNLOAD", "TRUSTED_TAG", fallback="Yes").strip().lower()
+TRUSTED_TAG = "Yes" if trusted_tag_raw == "yes" else "No"
+
+# 📌 RSS feed URL a TRUSTED_TAG alapján
+if TRUSTED_TAG == "Yes":
+    RSS_FEED_URL = "https://nyaa.si/?page=rss&c=0_0&f=2"
+else:
+    RSS_FEED_URL = "https://nyaa.si/?page=rss"
 
 # 📌 qBittorrent Web API beállítások
 QB_HOST = config.get("QBITTORRENT", "HOST", fallback="localhost")
@@ -80,7 +86,11 @@ def parse_rss(rss_data):
         if TARGET_TORRENT_MATCH and not all(term in title_lc for term in TARGET_TORRENT_MATCH):
             continue
 
-        if all(keyword.lower() in title_lc for keyword in KEYWORDS) and (trusted is not None and trusted.text == TRUSTED_TAG):
+        is_trusted = trusted is not None and trusted.text == "Yes"
+        if TRUSTED_TAG == "Yes" and not is_trusted:
+            continue
+
+        if all(keyword.lower() in title_lc for keyword in KEYWORDS):
             if any(q in title for q in PREFERRED_QUALITY):
                 if is_hash_already_downloaded(link):
                     print(f"⚠️ Torrent már le lett töltve korábban: {title}")
