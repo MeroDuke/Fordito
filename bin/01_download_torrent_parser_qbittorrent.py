@@ -42,7 +42,8 @@ QB_PASSWORD = config.get("QBITTORRENT", "PASSWORD")
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
-TORRENT_LOG_PATH = os.path.join(DATA_DIR, "downloaded_torrents.json")
+USERDATA_DIR = os.path.join(PROJECT_DIR, "userdata")
+TORRENT_LOG_PATH = os.path.join(USERDATA_DIR, "downloaded_torrents.json")
 
 # 📌 Csatlakozás qBittorrenthez
 qb = qbittorrentapi.Client(host=QB_HOST, port=QB_PORT, username=QB_USERNAME, password=QB_PASSWORD)
@@ -54,12 +55,12 @@ def load_downloaded_hashes():
             try:
                 return json.load(f)
             except json.JSONDecodeError:
-                return []
-    return []
+                return {}
+    return {}
 
 def is_hash_already_downloaded(magnet_link):
     downloaded = load_downloaded_hashes()
-    return any(entry.get("source_url") == magnet_link for entry in downloaded)
+    return any(entry.get("source") == magnet_link for entry in downloaded.values())
 
 def download_rss():
     response = requests.get(RSS_FEED_URL)
@@ -79,8 +80,23 @@ def parse_rss(rss_data):
         trusted = item.find("nyaa:trusted", namespaces)
 
         episode_id = extract_episode_id(title)
-        if episode_id and is_episode_already_downloaded(episode_id):
-            continue
+        if episode_id:
+            downloaded = load_downloaded_hashes()
+            def extract_info_hash_from_magnet(magnet_url: str) -> str:
+                import re
+                match = re.search(r'btih:([a-fA-F0-9]+)', magnet_url)
+                return match.group(1).lower() if match else None
+
+            new_hash = extract_info_hash_from_magnet(link)
+            for entry in downloaded.values():
+                if entry.get("episode_id") == episode_id:
+                    logged_hash = entry.get("hash", "").lower()
+                    if new_hash == logged_hash:
+                        print(f"⚠️ Epizód már le van töltve ugyanezzel a hash-sel: {episode_id}")
+                        return None
+                    else:
+                        print(f"⚠️ Epizód már le van töltve más hash-sel ({logged_hash[:8]} vs {new_hash[:8]}): {episode_id}")
+                        return None
 
         title_lc = title.lower()
         if TARGET_TORRENT_MATCH and not all(term in title_lc for term in TARGET_TORRENT_MATCH):
