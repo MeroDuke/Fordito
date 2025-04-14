@@ -64,15 +64,15 @@ def parse_rss(rss_data):
             print(f"🔁 Skip – már letöltve: {episode_id}")
             continue
 
-        if TARGET_TORRENT_MATCH:
-            if all(term in title.lower() for term in TARGET_TORRENT_MATCH):
-                print(f"🔍 Talált torrent a megadott kulcsszavak alapján: {title}")
-                return {"title": title, "link": link, "episode_id": episode_id}
+        title_lc = title.lower()
+        if TARGET_TORRENT_MATCH and not all(term in title_lc for term in TARGET_TORRENT_MATCH):
             continue
 
-        if all(keyword.lower() in title.lower() for keyword in KEYWORDS) and (trusted is not None and trusted.text == TRUSTED_TAG):
+        if all(keyword.lower() in title_lc for keyword in KEYWORDS) and (trusted is not None and trusted.text == TRUSTED_TAG):
             if any(q in title for q in PREFERRED_QUALITY):
+                print(f"🌟 Kiválasztott torrent: {title}")
                 best_torrent = {"title": title, "link": link, "episode_id": episode_id}
+                break
     return best_torrent
 
 def add_torrent_to_qbittorrent(torrent_url):
