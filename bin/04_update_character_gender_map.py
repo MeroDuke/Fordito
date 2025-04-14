@@ -64,6 +64,12 @@ if not input_ass:
 with open(input_ass, "r", encoding="utf-8") as f:
     lines = f.readlines()
 
+# 📌 Fejléc Title mező módosítása
+for i, line in enumerate(lines):
+    if line.strip().lower().startswith("title:"):
+        lines[i] = "Title: Akihabarai Könyvespolc - AI fordítás\n"
+        break
+    
 output_ass = input_ass.replace(".ass", "_styled.ass")
 
 # 📌 Styles szekció beazonosítása
