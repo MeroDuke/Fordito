@@ -5,6 +5,7 @@ import qbittorrentapi
 import time
 import configparser
 import sys
+import json
 
 # 📌 Elérési út hozzáadása a scripts mappához
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "scripts"))
@@ -35,10 +36,24 @@ QB_PASSWORD = config.get("QBITTORRENT", "PASSWORD")
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
+TORRENT_LOG_PATH = os.path.join(DATA_DIR, "downloaded_torrents.json")
 
 # 📌 Csatlakozás qBittorrenthez
 qb = qbittorrentapi.Client(host=QB_HOST, port=QB_PORT, username=QB_USERNAME, password=QB_PASSWORD)
 qb.auth_log_in()
+
+def load_downloaded_hashes():
+    if os.path.exists(TORRENT_LOG_PATH):
+        with open(TORRENT_LOG_PATH, "r", encoding="utf-8") as f:
+            try:
+                return json.load(f)
+            except json.JSONDecodeError:
+                return []
+    return []
+
+def is_hash_already_downloaded(magnet_link):
+    downloaded = load_downloaded_hashes()
+    return any(entry.get("source_url") == magnet_link for entry in downloaded)
 
 def download_rss():
     response = requests.get(RSS_FEED_URL)
@@ -59,7 +74,7 @@ def parse_rss(rss_data):
 
         episode_id = extract_episode_id(title)
         if episode_id and is_episode_already_downloaded(episode_id):
-             continue
+            continue
 
         title_lc = title.lower()
         if TARGET_TORRENT_MATCH and not all(term in title_lc for term in TARGET_TORRENT_MATCH):
@@ -67,6 +82,9 @@ def parse_rss(rss_data):
 
         if all(keyword.lower() in title_lc for keyword in KEYWORDS) and (trusted is not None and trusted.text == TRUSTED_TAG):
             if any(q in title for q in PREFERRED_QUALITY):
+                if is_hash_already_downloaded(link):
+                    print(f"⚠️ Torrent már le lett töltve korábban: {title}")
+                    return None
                 print(f"🌟 Kiválasztott torrent: {title}")
                 best_torrent = {"title": title, "link": link, "episode_id": episode_id}
                 break
@@ -132,4 +150,4 @@ if __name__ == "__main__":
                         break
                     time.sleep(5)
         else:
-            print("⚠️ **Nem találtunk megfelelő torrentet!**")
+            print("ℹ️ A legfrissebb torrent már le lett töltve korábban. Nincs új tartalom.")
