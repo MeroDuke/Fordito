@@ -1,5 +1,3 @@
-# bin/01_download_torrent_parser_qbittorrent.py
-
 import os
 import xml.etree.ElementTree as ET
 import requests
@@ -61,8 +59,7 @@ def parse_rss(rss_data):
 
         episode_id = extract_episode_id(title)
         if episode_id and is_episode_already_downloaded(episode_id):
-            print(f"🔁 Skip – már letöltve: {episode_id}")
-            continue
+             continue
 
         title_lc = title.lower()
         if TARGET_TORRENT_MATCH and not all(term in title_lc for term in TARGET_TORRENT_MATCH):
