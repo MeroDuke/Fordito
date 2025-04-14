@@ -1,9 +1,17 @@
+# bin/01_download_torrent_parser_qbittorrent.py
+
 import os
 import xml.etree.ElementTree as ET
 import requests
 import qbittorrentapi
 import time
 import configparser
+import sys
+
+# 📌 Elérési út hozzáadása a scripts mappához
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "scripts"))
+from episode_utils import extract_episode_id
+from download_log import is_episode_already_downloaded, add_episode_to_log
 
 # 📌 Konfiguráció beolvasása a config.ini fájlból
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "qbittorrent_config.ini")
@@ -51,15 +59,20 @@ def parse_rss(rss_data):
         link = item.find("link").text
         trusted = item.find("nyaa:trusted", namespaces)
 
+        episode_id = extract_episode_id(title)
+        if episode_id and is_episode_already_downloaded(episode_id):
+            print(f"🔁 Skip – már letöltve: {episode_id}")
+            continue
+
         if TARGET_TORRENT_MATCH:
             if all(term in title.lower() for term in TARGET_TORRENT_MATCH):
                 print(f"🔍 Talált torrent a megadott kulcsszavak alapján: {title}")
-                return {"title": title, "link": link}
+                return {"title": title, "link": link, "episode_id": episode_id}
             continue
 
         if all(keyword.lower() in title.lower() for keyword in KEYWORDS) and (trusted is not None and trusted.text == TRUSTED_TAG):
             if any(q in title for q in PREFERRED_QUALITY):
-                best_torrent = {"title": title, "link": link}
+                best_torrent = {"title": title, "link": link, "episode_id": episode_id}
     return best_torrent
 
 def add_torrent_to_qbittorrent(torrent_url):
@@ -111,6 +124,14 @@ if __name__ == "__main__":
                 while True:
                     if get_torrent_status(torrent_hash):
                         print("✅ A letöltés befejeződött. Folytathatjuk a munkát a fájllal.")
+
+                        if best_torrent.get("episode_id"):
+                            add_episode_to_log(
+                                episode_id=best_torrent["episode_id"],
+                                title=best_torrent["title"],
+                                hash_=torrent_hash,
+                                source_url=best_torrent["link"]
+                            )
                         break
                     time.sleep(5)
         else:
