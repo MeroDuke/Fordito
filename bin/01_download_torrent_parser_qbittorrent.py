@@ -58,80 +58,46 @@ def load_downloaded_hashes():
                 return {}
     return {}
 
-def is_hash_already_downloaded(magnet_link):
+def is_title_already_downloaded(episode_id):
     downloaded = load_downloaded_hashes()
-    return any(entry.get("source") == magnet_link for entry in downloaded.values())
+    return any(
+        key == episode_id or entry.get("episode_id") == episode_id
+        for key, entry in downloaded.items()
+    )
 
-def download_rss():
-    response = requests.get(RSS_FEED_URL)
-    if response.status_code == 200:
-        return response.content
+def add_episode_id_to_log_stub(episode_id, title, source_url):
+    from datetime import datetime
+    downloaded = load_downloaded_hashes()
+    used_keys = set(downloaded.keys())
+    new_id = 1
+    while str(new_id) in used_keys:
+        new_id += 1
+    downloaded[str(new_id)] = {
+        "episode_id": episode_id,
+        "title": title,
+        "hash": "",
+        "source": source_url,
+        "added_at": datetime.utcnow().isoformat()
+    }
+    with open(TORRENT_LOG_PATH, "w", encoding="utf-8") as f:
+        json.dump(downloaded, f, indent=2, ensure_ascii=False)
+    return str(new_id)
+
+def update_episode_log_hash(entry_id, new_hash):
+    downloaded = load_downloaded_hashes()
+    if entry_id not in downloaded:
+        downloaded[entry_id] = {
+            "episode_id": entry_id,
+            "title": "UNKNOWN",
+            "hash": new_hash,
+            "source": "UNKNOWN"
+        }
     else:
-        print(f"⚠️ Hiba történt az RSS letöltésekor: {response.status_code}")
-        return None
-
-def parse_rss(rss_data):
-    root = ET.fromstring(rss_data)
-    namespaces = {'nyaa': 'https://nyaa.si/xmlns/nyaa'}
-    best_torrent = None
-    for item in root.findall(".//item"):
-        title = item.find("title").text
-        link = item.find("link").text
-        trusted = item.find("nyaa:trusted", namespaces)
-
-        episode_id = extract_episode_id(title)
-        if episode_id:
-            downloaded = load_downloaded_hashes()
-            def extract_info_hash_from_magnet(magnet_url: str) -> str:
-                import re
-                match = re.search(r'btih:([a-fA-F0-9]+)', magnet_url)
-                return match.group(1).lower() if match else None
-
-            new_hash = extract_info_hash_from_magnet(link)
-            for entry in downloaded.values():
-                if entry.get("episode_id") == episode_id:
-                    logged_hash = entry.get("hash", "").lower()
-                    if new_hash == logged_hash:
-                        print(f"⚠️ Epizód már le van töltve ugyanezzel a hash-sel: {episode_id}")
-                        return None
-                    else:
-                        print(f"⚠️ Epizód már le van töltve más hash-sel ({logged_hash[:8]} vs {new_hash[:8]}): {episode_id}")
-                        return None
-
-        title_lc = title.lower()
-        if TARGET_TORRENT_MATCH and not all(term in title_lc for term in TARGET_TORRENT_MATCH):
-            continue
-
-        is_trusted = trusted is not None and trusted.text == "Yes"
-        if TRUSTED_TAG == "Yes" and not is_trusted:
-            continue
-
-        if all(keyword.lower() in title_lc for keyword in KEYWORDS):
-            if any(q in title for q in PREFERRED_QUALITY):
-                if is_hash_already_downloaded(link):
-                    print(f"⚠️ Torrent már le lett töltve korábban: {title}")
-                    return None
-                print(f"🌟 Kiválasztott torrent: {title}")
-                best_torrent = {"title": title, "link": link, "episode_id": episode_id}
-                break
-    return best_torrent
-
-def add_torrent_to_qbittorrent(torrent_url):
-    try:
-        qb.torrents_add(urls=torrent_url, save_path=DATA_DIR)
-        print(f"✅ Torrent sikeresen hozzáadva a qBittorrenthez: {torrent_url}")
-        time.sleep(5)
-        torrents = sorted(qb.torrents_info(), key=lambda t: t.added_on, reverse=True)
-        if torrents:
-            latest_torrent = torrents[0]
-            print(f"🔑 Követett torrent: {latest_torrent.name} | Hash: {latest_torrent.hash}")
-            return latest_torrent.hash
-        else:
-            print("⚠️ Nem találtunk torrentet a listában a hozzáadás után.")
-            return None
-    except Exception as e:
-        print(f"⚠️ Hiba történt a torrent hozzáadásakor: {e}")
-        return None
+        downloaded[entry_id]["hash"] = new_hash
+        if "episode_id" not in downloaded[entry_id]:
+            downloaded[entry_id]["episode_id"] = entry_id
+    with open(TORRENT_LOG_PATH, "w", encoding="utf-8") as f:
+            json.dump(downloaded, f, indent=2, ensure_ascii=False)
 
 def get_torrent_status(torrent_hash):
     try:
@@ -148,7 +114,79 @@ def get_torrent_status(torrent_hash):
         print(f"⚠️ Hiba történt a torrent lekérdezésekor: {e}")
     return False
 
-# 📌 Főprogram
+def download_rss():
+    response = requests.get(RSS_FEED_URL)
+    if response.status_code == 200:
+        return response.content
+    else:
+        print(f"⚠️ Hiba történt az RSS letöltésekor: {response.status_code}")
+        return None
+
+def parse_rss(rss_data):
+    root = ET.fromstring(rss_data)
+    namespaces = {'nyaa': 'https://nyaa.si/xmlns/nyaa'}
+    downloaded = load_downloaded_hashes()
+
+    def extract_info_hash_from_magnet(magnet_url: str) -> str:
+        import re
+        match = re.search(r'btih:([a-fA-F0-9]+)', magnet_url)
+        return match.group(1).lower() if match else None
+
+    for item in root.findall(".//item"):
+        title = item.find("title").text
+        link = item.find("link").text
+        trusted = item.find("nyaa:trusted", namespaces)
+        episode_id = extract_episode_id(title)
+        title_lc = title.lower()
+
+        if episode_id and is_title_already_downloaded(episode_id):
+            continue
+
+        if TARGET_TORRENT_MATCH and not all(term in title_lc for term in TARGET_TORRENT_MATCH):
+            continue
+        if TRUSTED_TAG == "Yes" and not (trusted is not None and trusted.text == "Yes"):
+            continue
+        if not all(keyword.lower() in title_lc for keyword in KEYWORDS):
+            continue
+        if not any(q in title for q in PREFERRED_QUALITY):
+            continue
+
+        new_hash = extract_info_hash_from_magnet(link)
+        if any(entry.get("source") == link for entry in downloaded.values()):
+            print(f"⚠️ Torrent már le lett töltve ezzel a linkkel: {title}")
+            continue
+        if new_hash and any(entry.get("hash", "").lower() == new_hash for entry in downloaded.values()):
+            print(f"⚠️ Torrent már le lett töltve ugyanazzal a hash-sel: {title}")
+            continue
+
+        print(f"🌟 Kiválasztott torrent: {title}")
+
+        if episode_id:
+            temp_id = add_episode_id_to_log_stub(episode_id, title, link)
+            return {"title": title, "link": link, "episode_id": episode_id, "log_id": temp_id}
+        else:
+            return {"title": title, "link": link, "episode_id": None, "log_id": None}
+
+    return None
+
+def add_torrent_to_qbittorrent(torrent_url, expected_title):
+    try:
+        qb.torrents_add(urls=torrent_url, save_path=DATA_DIR)
+        print(f"✅ Torrent sikeresen hozzáadva a qBittorrenthez: {torrent_url}")
+        time.sleep(5)
+
+        matching = [t for t in qb.torrents_info() if expected_title in t.name]
+        if matching:
+            torrent = matching[0]
+            print(f"🔑 Követett torrent: {torrent.name} | Hash: {torrent.hash}")
+            return torrent.hash
+
+        print(f"⚠️ Nem találtuk meg a hozzáadott torrentet: {expected_title}")
+        return None
+    except Exception as e:
+        print(f"⚠️ Hiba történt a torrent hozzáadásakor: {e}")
+        return None
+
 if __name__ == "__main__":
     print("🔄 RSS feed letöltése...")
     rss_data = download_rss()
@@ -159,14 +197,16 @@ if __name__ == "__main__":
 
         if best_torrent:
             print(f"🌟 **Legjobb torrent kiválasztva:** {best_torrent['title']}")
-            torrent_hash = add_torrent_to_qbittorrent(best_torrent["link"])
+            torrent_hash = add_torrent_to_qbittorrent(best_torrent["link"], best_torrent["title"])
             if torrent_hash:
                 print("🔄 Letöltés figyelése...")
                 while True:
                     if get_torrent_status(torrent_hash):
                         print("✅ A letöltés befejeződött. Folytathatjuk a munkát a fájllal.")
 
-                        if best_torrent.get("episode_id"):
+                        if best_torrent.get("log_id"):
+                            update_episode_log_hash(best_torrent["log_id"], torrent_hash)
+                        elif best_torrent.get("episode_id"):
                             add_episode_to_log(
                                 episode_id=best_torrent["episode_id"],
                                 title=best_torrent["title"],
