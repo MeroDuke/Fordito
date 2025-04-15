@@ -196,7 +196,6 @@ if __name__ == "__main__":
         best_torrent = parse_rss(rss_data)
 
         if best_torrent:
-            print(f"🌟 **Legjobb torrent kiválasztva:** {best_torrent['title']}")
             torrent_hash = add_torrent_to_qbittorrent(best_torrent["link"], best_torrent["title"])
             if torrent_hash:
                 print("🔄 Letöltés figyelése...")
