@@ -50,9 +50,13 @@ for mkv_file in mkv_files:
     log_user_print(LOG_NAME, f"🚀 MKVToolNix futtatása: {command_str}")
 
     try:
-        subprocess.run(command, check=True)
+        result = subprocess.run(command, check=True, capture_output=True, text=True)
+        log_tech(LOG_NAME, f"mkvmerge stdout:\n{result.stdout}")
+        log_tech(LOG_NAME, f"mkvmerge stderr:\n{result.stderr}")
         log_user_print(LOG_NAME, f"✅ Sikeresen hozzáadtuk a feliratot! Kimeneti fájl: {output_file}")
         log_tech(LOG_NAME, f"Felirat hozzáadva: {output_file}")
     except subprocess.CalledProcessError as e:
         log_user_print(LOG_NAME, f"❌ Hiba történt: {e}")
         log_tech(LOG_NAME, f"Hiba mkvmerge futtatása közben: {e}")
+        log_tech(LOG_NAME, f"stdout:\n{e.stdout}")
+        log_tech(LOG_NAME, f"stderr:\n{e.stderr}")
