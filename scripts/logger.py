@@ -27,22 +27,27 @@ def _get_log_path(script_name: str, suffix: str) -> str:
 def _separator():
     return "\n" + "-" * 80 + "\n"
 
-# User logolás
 def log_user(script_name: str, message: str):
-    if not LOG_ENABLED:
-        return
-    path = _get_log_path(script_name, "user")
-    timestamp = datetime.datetime.now().strftime('%H:%M:%S')
-    with open(path, 'a', encoding='utf-8') as f:
-        f.write(f"[{timestamp}] {message}")
-        f.write(_separator())
+    if LOG_ENABLED:
+        _write_log(script_name, message, suffix="user")
 
-# Technikai logolás
+def log_user_print(script_name: str, message: str):
+    print(message)
+    log_user(script_name, message)
+
 def log_tech(script_name: str, message: str):
-    if not LOG_ENABLED:
-        return
-    path = _get_log_path(script_name, "tech")
+    if LOG_ENABLED:
+        _write_log(script_name, message, suffix="tech")
+
+def _write_log(script_name: str, message: str, suffix: str):
+    import datetime
+    import os
+    date_str = datetime.datetime.now().strftime('%Y-%m-%d')
     timestamp = datetime.datetime.now().strftime('%H:%M:%S')
-    with open(path, 'a', encoding='utf-8') as f:
-        f.write(f"[{timestamp}] {message}")
-        f.write(_separator())
+    PROJECT_ROOT = find_project_root()  # vagy hasonló, amit már használtál
+    LOG_DIR = os.path.join(PROJECT_ROOT, "logs")
+    os.makedirs(LOG_DIR, exist_ok=True)
+    path = os.path.join(LOG_DIR, f"{date_str}_{script_name}_{suffix}.log")
+    with open(path, "a", encoding="utf-8") as f:
+        f.write(f"[{timestamp}] {message}\n")
+        f.write("-" * 80 + "\n")
