@@ -1,30 +1,35 @@
+import sys
 import os
 import json
 import hashlib
 
 # 📌 Mappák és fájlnevek
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+sys.path.insert(0, PROJECT_DIR)
+from scripts.logger import log_user_print, log_tech
+
 USERDATA_DIR = os.path.join(PROJECT_DIR, "userdata")
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
 
 SPEAKER_FILE = os.path.join(USERDATA_DIR, "speakers.txt")
 COLOR_MAP_FILE = os.path.join(USERDATA_DIR, "character_color_map.json")
 
+LOG_NAME = "04_update_styles"
+
 # 📌 Szín világosságának becslése
 def perceived_brightness(r, g, b):
     return (r * 299 + g * 587 + b * 114) / 1000
 
-BRIGHTNESS_THRESHOLD = 180  # Világos színek kiszűrésére
+BRIGHTNESS_THRESHOLD = 180
 
-# 📌 character_color_map betöltése vagy inicializálása
 if os.path.exists(COLOR_MAP_FILE):
     with open(COLOR_MAP_FILE, "r", encoding="utf-8") as f:
         color_map = json.load(f)
 else:
     color_map = {}
 
-# 📌 Új karakterek színének generálása
 if os.path.exists(SPEAKER_FILE):
     with open(SPEAKER_FILE, "r", encoding="utf-8") as f:
         for line in f:
@@ -34,22 +39,18 @@ if os.path.exists(SPEAKER_FILE):
                 r = int(h[0:2], 16)
                 g = int(h[2:4], 16)
                 b = int(h[4:6], 16)
-
-                # Túl világos? Sötétítsük.
                 if perceived_brightness(r, g, b) > BRIGHTNESS_THRESHOLD:
                     r = int(r * 0.5)
                     g = int(g * 0.5)
                     b = int(b * 0.5)
-
                 color_map[name] = f"&H{b:02X}{g:02X}{r:02X}&"
+                log_tech(LOG_NAME, f"Szín generálva: {name} -> {color_map[name]}")
 
-# 📌 character_color_map mentése
 with open(COLOR_MAP_FILE, "w", encoding="utf-8") as f:
     json.dump(color_map, f, ensure_ascii=False, indent=2)
+log_user_print(LOG_NAME, f"✅ Szítérkép frissítve: {COLOR_MAP_FILE}")
+log_tech(LOG_NAME, f"Szítérkép mentve: {COLOR_MAP_FILE}")
 
-print(f"✅ Színtérkép frissítve: {COLOR_MAP_FILE}")
-
-# 📌 Hungarian .ass fájl keresése
 input_ass = None
 for file in os.listdir(DATA_DIR):
     if file.endswith("_hungarian.ass"):
@@ -57,22 +58,21 @@ for file in os.listdir(DATA_DIR):
         break
 
 if not input_ass:
-    print("❌ Nem található _hungarian.ass fájl a data mappában.")
+    log_user_print(LOG_NAME, "❌ Nem található _hungarian.ass fájl a data mappában.")
+    log_tech(LOG_NAME, "Nem találtunk fordított .ass fájlt a data/ alatt.")
     exit(1)
 
-# 📌 Fájl beolvasása
 with open(input_ass, "r", encoding="utf-8") as f:
     lines = f.readlines()
 
-# 📌 Fejléc Title mező módosítása
 for i, line in enumerate(lines):
     if line.strip().lower().startswith("title:"):
         lines[i] = "Title: Akihabarai Könyvespolc - AI fordítás\n"
+        log_tech(LOG_NAME, "Title mező frissítve.")
         break
-    
+
 output_ass = input_ass.replace(".ass", "_styled.ass")
 
-# 📌 Styles szekció beazonosítása
 format_line = None
 styles_start = None
 styles_end = None
@@ -85,14 +85,12 @@ for i, line in enumerate(lines):
     elif styles_start and line.lower().startswith("format:"):
         format_line = line.strip()
 
-# 📌 Style: Default sor beolvasása
 style_default = None
 for line in lines[styles_start:styles_end]:
     if line.lower().startswith("style: default"):
         style_default = line.strip()
         break
 
-# 📌 Új Style sorok generálása
 new_styles = []
 if style_default and format_line:
     parts = style_default.split(",")
@@ -105,9 +103,10 @@ if style_default and format_line:
         new_parts[name_idx] = f"Char_{character}"
         new_parts[color_idx] = color
         new_parts[fontname_idx] = "Trebuchet MS"
-        new_styles.append("Style: " + ",".join(new_parts) + "\n")
+        style_line = "Style: " + ",".join(new_parts) + "\n"
+        new_styles.append(style_line)
+        log_tech(LOG_NAME, f"Style generálva: {style_line.strip()}")
 
-# 📌 Beszúrjuk az új Style-okat, ha még nem léteznek
 existing_styles = set(line.split(":",1)[1].split(",")[0].strip() for line in lines[styles_start:styles_end] if line.lower().startswith("style:"))
 style_insert_idx = styles_end if styles_end else len(lines)
 for new_style in new_styles:
@@ -115,8 +114,8 @@ for new_style in new_styles:
     if style_name not in existing_styles:
         lines.insert(style_insert_idx, new_style)
         style_insert_idx += 1
+        log_tech(LOG_NAME, f"Style beszúrva: {style_name}")
 
-# 📌 Dialogue sorok frissítése
 updated_lines = []
 for line in lines:
     if line.strip().lower().startswith("dialogue:"):
@@ -127,13 +126,13 @@ for line in lines:
             parts[3] = style_name
             updated_line = ",".join(parts)
             updated_lines.append(updated_line)
+            log_tech(LOG_NAME, f"Stílus frissítve: {name} -> {style_name}")
         else:
             updated_lines.append(line)
     else:
         updated_lines.append(line)
 
-# 📌 Fájl mentése
 with open(output_ass, "w", encoding="utf-8") as f:
     f.writelines(updated_lines)
-
-print(f"✅ ASS fájl frissítve: {output_ass}")
+log_user_print(LOG_NAME, f"✅ ASS fájl frissítve: {output_ass}")
+log_tech(LOG_NAME, f"ASS fájl mentve: {output_ass}")

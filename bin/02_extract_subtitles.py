@@ -1,3 +1,10 @@
+import sys
+import os
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+sys.path.insert(0, PROJECT_DIR)
+
 import json
 import subprocess
 import os
@@ -8,59 +15,48 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
 
+# 📌 Log modul
+from scripts.logger import log_user_print, log_tech
+LOG_NAME = "02_extract_subtitles"
 
 def check_dependency(command):
-    """Ellenőrzi, hogy a megadott parancs elérhető-e a rendszer PATH-jában."""
     if shutil.which(command) is None:
+        log_tech(LOG_NAME, f"'{command}' parancs nem található a PATH-ban.")
         raise EnvironmentError(f"'{command}' parancs nem található. Telepítsd a szükséges csomagot.")
 
-
 def run_command(command, error_message):
-    """Futtat egy parancsot és hibák esetén kivételt dob."""
     result = subprocess.run(command, capture_output=True, text=True)
     if result.returncode != 0:
+        log_tech(LOG_NAME, f"{error_message}\n{result.stderr.strip()}")
         raise RuntimeError(f"{error_message}\n{result.stderr.strip()}")
     return result.stdout
 
-
 def find_mkv_file(directory):
-    """
-    Megkeresi az első elérhető MKV fájlt a megadott mappában.
-    """
     try:
         for file in os.listdir(directory):
             if file.lower().endswith(".mkv"):
                 return os.path.join(directory, file)
     except FileNotFoundError:
-        print(f"⚠️ A mappa nem található: {directory}")
+        log_tech(LOG_NAME, f"A mappa nem található: {directory}")
+        log_user_print(LOG_NAME, f"⚠️ A mappa nem található: {directory}")
     return None
 
-
 def extract_subtitle(mkv_file, language_codes, output_suffix, fallback_track_name=None):
-    """
-    Kinyeri a megadott nyelvű feliratot egy adott MKV fájlból és .ass formátumban menti el.
-    
-    Ha a language_codes alapján nem található track, és a fallback_track_name meg van adva,
-    akkor megpróbálja a track_name értékét vizsgálni.
-    """
     base_name = os.path.splitext(mkv_file)[0]
     output_subtitle = f"{base_name}_{output_suffix}.ass"
 
-    # Ellenőrizzük, hogy a kimeneti fájl már létezik-e
     if os.path.exists(output_subtitle):
-        print(f"ℹ️ A {output_subtitle} fájl már létezik. Átugrás.")
+        log_user_print(LOG_NAME, f"ℹ️ A {output_subtitle} fájl már létezik. Átugrás.")
         return
 
-    # MKV fájl információ lekérése JSON formátumban
     command = ["mkvmerge", "-J", mkv_file]
     try:
         stdout = run_command(command, "❌ Hiba történt az MKV fájl feldolgozása közben!")
         mkv_info = json.loads(stdout)
     except (RuntimeError, json.JSONDecodeError) as e:
-        print(e)
+        log_tech(LOG_NAME, f"MKV feldolgozási hiba: {e}")
         return
 
-    # Keresünk egy megadott nyelvű feliratot
     subtitle_track = next(
         (
             track for track in mkv_info.get("tracks", [])
@@ -69,7 +65,6 @@ def extract_subtitle(mkv_file, language_codes, output_suffix, fallback_track_nam
         None
     )
 
-    # Ha nem található a nyelvi kód alapján, próbáljuk a fallback-et a track_name alapján, ha van fallback_track_name
     if not subtitle_track and fallback_track_name:
         subtitle_track = next(
             (
@@ -79,42 +74,40 @@ def extract_subtitle(mkv_file, language_codes, output_suffix, fallback_track_nam
             None
         )
         if subtitle_track:
-            print(f"ℹ️ Fallback: {output_suffix} felirat kinyerése a track_name alapján ('{fallback_track_name}')")
+            log_user_print(LOG_NAME, f"ℹ️ Fallback: {output_suffix} felirat kinyerése a track_name alapján ('{fallback_track_name}')")
+            log_tech(LOG_NAME, f"Fallback track alapján talált felirat: {output_suffix}")
 
     if not subtitle_track:
-        print(f"❌ Nem található {output_suffix} felirat a fájlban.")
+        log_user_print(LOG_NAME, f"❌ Nem található {output_suffix} felirat a fájlban.")
         return
 
     track_id = subtitle_track["id"]
-    print(f"✅ {output_suffix.capitalize()} felirat megtalálva: Track ID {track_id}")
+    log_user_print(LOG_NAME, f"✅ {output_suffix.capitalize()} felirat megtalálva: Track ID {track_id}")
+    log_tech(LOG_NAME, f"{output_suffix} track megtalálva, ID: {track_id}")
 
-    # Felirat kinyerése .ass formátumban
     extract_command = ["mkvextract", "tracks", mkv_file, f"{track_id}:{output_subtitle}"]
     try:
         run_command(extract_command, f"❌ Hiba történt a {output_suffix} felirat kinyerése közben!")
-        print(f"✅ Sikeresen kinyert {output_suffix} felirat: {output_subtitle}")
+        log_user_print(LOG_NAME, f"✅ Sikeresen kinyert {output_suffix} felirat: {output_subtitle}")
+        log_tech(LOG_NAME, f"{output_suffix} felirat kinyerve: {output_subtitle}")
     except RuntimeError as e:
-        print(e)
+        log_tech(LOG_NAME, f"{e}")
 
-
-# 📌 Főprogram
 if __name__ == "__main__":
-    # Ellenőrizzük a szükséges parancsokat
     try:
         check_dependency("mkvmerge")
         check_dependency("mkvextract")
     except EnvironmentError as e:
-        print(e)
+        log_user_print(LOG_NAME, str(e))
         exit(1)
 
-    print(f"🔍 MKV fájl keresése a mappában: {DATA_DIR}")
+    log_user_print(LOG_NAME, f"🔍 MKV fájl keresése a mappában: {DATA_DIR}")
     mkv_file = find_mkv_file(DATA_DIR)
 
     if mkv_file:
-        print(f"🎯 Talált MKV fájl: {mkv_file}")
-        # Angol felirat kinyerése (nyelvi kód alapján)
+        log_user_print(LOG_NAME, f"🎯 Talált MKV fájl: {mkv_file}")
+        log_tech(LOG_NAME, f"MKV fájl betöltve feldolgozásra: {mkv_file}")
         extract_subtitle(mkv_file, ["eng", "en"], "english")
-        # Japán felirat kinyerése: ha nem találunk "jpn"/"ja" kódot, fallbackként megkeressük a track_name-ben az "ass" szót
         extract_subtitle(mkv_file, ["jpn", "ja"], "japanese", fallback_track_name="ass")
     else:
-        print("⚠️ Nincs MKV fájl a 'data' mappában.")
+        log_user_print(LOG_NAME, "⚠️ Nincs MKV fájl a 'data' mappában.")

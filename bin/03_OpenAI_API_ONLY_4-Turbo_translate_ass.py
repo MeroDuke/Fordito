@@ -1,8 +1,20 @@
+import sys
 import openai
 import os
 import time
 import configparser
 from tqdm import tqdm
+
+# 📌 Projektmappa logoláshoz
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+
+# 📌 Log modul
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+sys.path.insert(0, PROJECT_DIR)
+from scripts.logger import log_user_print, log_tech
+LOG_NAME = "03_translate_subtitles"
 
 # 📌 Konfigurációs fájlok beolvasása
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -22,20 +34,15 @@ MODEL_JPN = config.get("OPENAI", "MODEL_JPN", fallback="gpt-4o")
 BATCH_SIZE = config.getint("OPENAI", "BATCH_SIZE", fallback=3)
 
 if not OPENAI_API_KEY:
+    log_user_print(LOG_NAME, "❌ Nincs megadva OpenAI API kulcs a credentials.ini konfigurációban!")
+    log_tech(LOG_NAME, "OpenAI API kulcs hiányzik a konfigurációból.")
     raise ValueError("❌ Nincs megadva OpenAI API kulcs a credentials.ini konfigurációban!")
 
 # 📌 Projektmappa és 'data' mappa meghatározása
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
 
 
 def find_ass_file(directory):
-    """
-    Megkeresi az elsődleges .ass fájlt a következő prioritási sorrendben:
-    1. Japán felirat ('_japanese' a fájlnévben)
-    2. Angol felirat ('_english' a fájlnévben)
-    """
     japanese_file = None
     english_file = None
 
@@ -47,12 +54,12 @@ def find_ass_file(directory):
                 english_file = os.path.join(directory, file)
     return japanese_file or english_file
 
-
 # 📌 Keresünk fordítandó fájlt
 INPUT_FILE = find_ass_file(DATA_DIR)
 
 if not INPUT_FILE:
-    print("⚠️ Nincs megfelelő .ass fájl a 'data' mappában.")
+    log_user_print(LOG_NAME, "⚠️ Nincs megfelelő .ass fájl a 'data' mappában.")
+    log_tech(LOG_NAME, "Hiányzik .ass fájl a data mappából.")
     exit(1)
 
 # 📌 Modell kiválasztása fájlnév alapján
@@ -61,22 +68,21 @@ if "_english" in INPUT_FILE:
 elif "_japanese" in INPUT_FILE:
     MODEL = MODEL_JPN
 else:
-    print("❌ Ismeretlen nyelvi fájlformátum.")
+    log_user_print(LOG_NAME, "❌ Ismeretlen nyelvi fájlformátum.")
+    log_tech(LOG_NAME, f"Ismeretlen fájlnév: {INPUT_FILE}")
     exit(1)
 
 # 📌 Kimeneti fájl neve
 OUTPUT_FILE = INPUT_FILE.replace("_english", "_hungarian").replace("_japanese", "_hungarian")
 
-print(f"✅ Talált feliratfájl: {INPUT_FILE}")
-print(f"✅ Használt modell: {MODEL}")
-print(f"✅ A fordított fájl neve: {OUTPUT_FILE}")
+log_user_print(LOG_NAME, f"✅ Talált feliratfájl: {INPUT_FILE}")
+log_user_print(LOG_NAME, f"✅ Használt modell: {MODEL}")
+log_user_print(LOG_NAME, f"✅ A fordított fájl neve: {OUTPUT_FILE}")
+log_tech(LOG_NAME, f"Input fájl: {INPUT_FILE} | Modell: {MODEL} | Output: {OUTPUT_FILE}")
 
-# 📌 OpenAI API kulcs beállítása
 openai.api_key = OPENAI_API_KEY
 
-
 def translate_with_openai(text_list):
-    """OpenAI segítségével fordítja le a megadott szövegeket egy egyedi elválasztó használatával."""
     delimiter = "|||"
     try:
         response = openai.ChatCompletion.create(
@@ -96,18 +102,16 @@ def translate_with_openai(text_list):
         translations = output.split(delimiter)
         translations = [t.strip() for t in translations if t.strip()]
         if len(translations) != len(text_list):
-            print(f"⚠️ Warning: Expected {len(text_list)} translations, but got {len(translations)}.")
+            log_tech(LOG_NAME, f"⚠️ Warning: Expected {len(text_list)} translations, but got {len(translations)}.")
         return translations
     except Exception as e:
-        print(f"⚠️ OpenAI API hiba: {e}")
+        log_user_print(LOG_NAME, f"⚠️ OpenAI API hiba: {e}")
+        log_tech(LOG_NAME, f"OpenAI kivétel: {e}")
         return text_list
 
-
-# 📌 ASS fájl beolvasása
 with open(INPUT_FILE, "r", encoding="utf-8") as f:
     lines = f.readlines()
 
-# 🌟 Beszélőnevek kigyűjtése a fordítás előtt
 unique_names = set()
 for line in lines:
     if line.strip().lower().startswith("dialogue:"):
@@ -120,17 +124,15 @@ for line in lines:
 translated_lines = []
 batch = []
 original_prefixes = []
-
-# Számoljuk meg a fordítandó "Dialogue:" sorokat a progress bar pontos működéséhez
 dialogue_count = sum(1 for line in lines if line.strip().lower().startswith("dialogue:"))
 
+from tqdm import tqdm
 with tqdm(total=dialogue_count, desc="🔄 Fordítás folyamatban", unit="sor") as pbar:
     for line in lines:
         if line.strip().lower().startswith("dialogue:"):
             parts = line.split(",", 10)
             if len(parts) >= 2:
                 name = parts[4].strip()
-                # név már korábban kigyűjtve
 
             last_comma_idx = line.rfind(",,")
             if last_comma_idx != -1:
@@ -160,11 +162,11 @@ with tqdm(total=dialogue_count, desc="🔄 Fordítás folyamatban", unit="sor") 
             pbar.update(1)
         time.sleep(1)
 
-# 📌 Fordított fájl mentése
 with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
     f.writelines(translated_lines)
+log_user_print(LOG_NAME, f"✅ Fordítás kész! Mentve: {OUTPUT_FILE}")
+log_tech(LOG_NAME, f"Fordított állomány mentve: {OUTPUT_FILE}")
 
-# 📌 Nevek mentése a 'userdata' mappába
 USERDATA_DIR = os.path.join(PROJECT_DIR, "userdata")
 os.makedirs(USERDATA_DIR, exist_ok=True)
 speaker_output_path = os.path.join(USERDATA_DIR, "speakers.txt")
@@ -172,6 +174,5 @@ speaker_output_path = os.path.join(USERDATA_DIR, "speakers.txt")
 with open(speaker_output_path, "w", encoding="utf-8") as f:
     for name in sorted(unique_names):
         f.write(name + "\n")
-
-print(f"✅ Fordítás kész! Mentve: {OUTPUT_FILE}")
-print(f"📂 Beszélőnevek mentve: {speaker_output_path}")
+log_user_print(LOG_NAME, f"📂 Beszélőnevek mentve: {speaker_output_path}")
+log_tech(LOG_NAME, f"Beszélőnevek exportálva: {speaker_output_path}")
