@@ -2,7 +2,7 @@ import os
 import datetime
 
 # Master kapcsoló
-LOG_ENABLED = True
+LOG_ENABLED = False
 
 # Log mappa
 def find_project_root(marker=".git"):
