@@ -47,7 +47,7 @@ for mkv_file in mkv_files:
 
     command_str = " ".join(command)
     log_tech(LOG_NAME, f"Futtatandó parancs: {command_str}")
-    log_user_print(LOG_NAME, f"🚀 MKVToolNix futtatása: {command_str}")
+    log_user_print(LOG_NAME, f"🚀 MKVToolNix futtatása")
 
     try:
         result = subprocess.run(command, check=True, capture_output=True, text=True)
