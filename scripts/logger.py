@@ -5,7 +5,16 @@ import datetime
 LOG_ENABLED = True
 
 # Log mappa
-LOG_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'logs')
+def find_project_root(marker=".git"):
+    current = os.path.abspath(os.path.dirname(__file__))
+    while current != os.path.dirname(current):
+        if os.path.isdir(os.path.join(current, marker)):
+            return current
+        current = os.path.dirname(current)
+    raise RuntimeError("❌ Nem található projektgyökér (nincs .git mappa)")
+
+PROJECT_ROOT = find_project_root()
+LOG_DIR = os.path.join(PROJECT_ROOT, "logs")
 os.makedirs(LOG_DIR, exist_ok=True)
 
 # Segédfüggvény a fájlnévhez

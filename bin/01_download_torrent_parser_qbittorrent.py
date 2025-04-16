@@ -5,6 +5,11 @@ import qbittorrentapi
 import time
 import configparser
 import sys
+
+# 📌 Projekt gyökérmappa felvétele az elérési útba
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+sys.path.insert(0, PROJECT_DIR)
 import json
 
 # 📌 Elérési út hozzáadása a scripts mappához
@@ -44,6 +49,11 @@ PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
 USERDATA_DIR = os.path.join(PROJECT_DIR, "userdata")
 TORRENT_LOG_PATH = os.path.join(USERDATA_DIR, "downloaded_torrents.json")
+
+# 📌 Log mappa meghatározása
+LOG_DIR = os.path.join(PROJECT_DIR, "logs")
+LOG_NAME = "01_download_torrent_parser_qbittorrent"
+from scripts.logger import log_user, log_tech
 
 # 📌 Csatlakozás qBittorrenthez
 qb = qbittorrentapi.Client(host=QB_HOST, port=QB_PORT, username=QB_USERNAME, password=QB_PASSWORD)
@@ -188,16 +198,20 @@ def add_torrent_to_qbittorrent(torrent_url, expected_title):
         return None
 
 if __name__ == "__main__":
+    log_user(LOG_NAME, "🔄 RSS feed letöltése elindult.")
     print("🔄 RSS feed letöltése...")
     rss_data = download_rss()
+    log_tech(LOG_NAME, "🔍 RSS adat lekérése folyamatban...")
 
     if rss_data:
         print("🔍 RSS fájl elemzése...")
         best_torrent = parse_rss(rss_data)
 
         if best_torrent:
+            log_user(LOG_NAME, f"🌟 Kiválasztott torrent: {best_torrent['title']}")
             torrent_hash = add_torrent_to_qbittorrent(best_torrent["link"], best_torrent["title"])
             if torrent_hash:
+                log_tech(LOG_NAME, f"Letöltés elindult. Torrent hash: {torrent_hash}")
                 print("🔄 Letöltés figyelése...")
                 while True:
                     if get_torrent_status(torrent_hash):
@@ -215,4 +229,7 @@ if __name__ == "__main__":
                         break
                     time.sleep(5)
         else:
+            log_user(LOG_NAME, "ℹ️ A legfrissebb torrent már le lett töltve korábban. Nincs új tartalom.")
             print("ℹ️ A legfrissebb torrent már le lett töltve korábban. Nincs új tartalom.")
+
+log_user(LOG_NAME, "✅ Log rendszer működik.")
