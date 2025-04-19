@@ -89,7 +89,7 @@ def main():
         "anilist_id": anime.get("id"),
         "genres": anime.get("genres", []),
         "synopsis": anime.get("description"),
-        "source_language": "ja" if anime.get("title", {}).get("native") else "en",
+        "source_language": "und",
         "characters": characters
     }
 
