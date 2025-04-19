@@ -196,11 +196,23 @@ def add_torrent_to_qbittorrent(torrent_url, expected_title):
         qb.torrents_add(urls=torrent_url, save_path=DATA_DIR)
         print(f"✅ Torrent sikeresen hozzáadva: {torrent_url}")
         log_user(LOG_NAME, f"✅ Torrent hozzáadva: {torrent_url}")
+
+        # Várunk, hogy biztos bekerüljön a qBittorrent listájába
         time.sleep(5)
 
-        matching = [t for t in qb.torrents_info() if expected_title in t.name]
+        # Először rugalmas névegyezéssel próbálkozunk
+        matching = [t for t in qb.torrents_info() if expected_title.lower() in t.name.lower()]
+
+        # Ha nem találunk ilyet, próbáljuk meg a legutóbbi torrentet venni
+        torrent = None
         if matching:
             torrent = matching[0]
+        else:
+            torrents = sorted(qb.torrents_info(), key=lambda t: t.added_on, reverse=True)
+            if torrents:
+                torrent = torrents[0]
+
+        if torrent:
             print(f"🔑 Torrent felismerve: {torrent.name} | Hash: {torrent.hash}")
             log_tech(LOG_NAME, f"🔑 Torrent felismerve: {torrent.name} | Hash: {torrent.hash}")
             return torrent.hash
@@ -208,6 +220,7 @@ def add_torrent_to_qbittorrent(torrent_url, expected_title):
         print(f"⚠️ Nem találtuk meg a hozzáadott torrentet: {expected_title}")
         log_tech(LOG_NAME, f"⚠️ Nem találtuk a hozzáadott torrentet: {expected_title}")
         return None
+
     except Exception as e:
         print(f"⚠️ Hiba történt a torrent hozzáadásakor: {e}")
         log_tech(LOG_NAME, f"⚠️ Hiba torrent hozzáadásakor: {e}")
