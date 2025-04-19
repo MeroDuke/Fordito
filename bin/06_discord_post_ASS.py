@@ -55,7 +55,7 @@ def send_text_message(webhook_url, message):
 
 def find_subtitle_file(data_dir):
     for fname in os.listdir(data_dir):
-        if fname.lower().endswith('.ass') and '_hungarian' in fname.lower():
+        if fname.lower().endswith('.ass') and '_hungarian_styled' in fname.lower():
             subtitle_path = os.path.join(data_dir, fname)
             log_user_print(LOG_NAME, f"📄 Feliratfájl megtalálva: {subtitle_path}")
             return subtitle_path

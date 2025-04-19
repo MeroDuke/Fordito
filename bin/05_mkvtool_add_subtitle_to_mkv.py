@@ -12,7 +12,7 @@ LOG_NAME = "05_add_subs"
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
 
 mkv_files = [f for f in os.listdir(DATA_DIR) if f.endswith(".mkv")]
-ass_files = [f for f in os.listdir(DATA_DIR) if f.endswith(".ass") and "_hungarian." in f]
+ass_files = [f for f in os.listdir(DATA_DIR) if f.endswith(".ass") and "_hungarian_styled." in f]
 
 if not mkv_files:
     log_user_print(LOG_NAME, "❌ Nincs MKV fájl a 'data' mappában!")
