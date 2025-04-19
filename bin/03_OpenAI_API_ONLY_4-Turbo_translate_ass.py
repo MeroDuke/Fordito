@@ -3,6 +3,7 @@ import openai
 import os
 import time
 import configparser
+import json
 from tqdm import tqdm
 
 # 📌 Projektmappa logoláshoz
@@ -32,6 +33,8 @@ OPENAI_API_KEY = secrets.get("OPENAI", "API_KEY", fallback=None)
 MODEL_ENG = config.get("OPENAI", "MODEL_ENG", fallback="gpt-4-turbo")
 MODEL_JPN = config.get("OPENAI", "MODEL_JPN", fallback="gpt-4o")
 BATCH_SIZE = config.getint("OPENAI", "BATCH_SIZE", fallback=3)
+USE_CONTEXT = config.getboolean("OPENAI", "USE_CONTEXT", fallback=False)
+log_tech(LOG_NAME, f"Kontextus használata engedélyezve: {USE_CONTEXT}")
 
 if not OPENAI_API_KEY:
     log_user_print(LOG_NAME, "❌ Nincs megadva OpenAI API kulcs a credentials.ini konfigurációban!")
@@ -41,6 +44,40 @@ if not OPENAI_API_KEY:
 # 📌 Projektmappa és 'data' mappa meghatározása
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
 
+# 📌 Kontextus betöltése, ha van és engedélyezett
+CONTEXT_PATH = os.path.join(PROJECT_DIR, "userdata", "context_preview.json")
+CONTEXT_DATA = None
+if USE_CONTEXT:
+    if os.path.exists(CONTEXT_PATH):
+        try:
+            with open(CONTEXT_PATH, encoding="utf-8") as f:
+                CONTEXT_DATA = json.load(f)
+        except Exception as e:
+            CONTEXT_DATA = None
+
+def build_contextual_prompt(delimiter: str) -> str:
+    context_lines = []
+    if CONTEXT_DATA:
+        if CONTEXT_DATA.get("synopsis"):
+            context_lines.append(f"Anime synopsis: {CONTEXT_DATA['synopsis']}")
+        if CONTEXT_DATA.get("genres"):
+            context_lines.append(f"Genres: {', '.join(CONTEXT_DATA['genres'])}")
+        if CONTEXT_DATA.get("characters"):
+            formatted = [
+                f"{c.get('name')} ({c.get('name_japanese')})"
+                for c in CONTEXT_DATA["characters"]
+                if c.get("name") and c.get("name_japanese")
+            ]
+            if formatted:
+                context_lines.append(f"Character list: {', '.join(formatted)}")
+    context_text = "\n".join(context_lines)
+    return (
+        "You are a professional translator.\n"
+        + context_text + "\n"
+        + "Translate each of the following lines to natural, idiomatic, and conversational Hungarian.\n"
+        + f"Output the translations exactly separated by '{delimiter}'.\n"
+        + "Do not output anything else."
+    )
 
 def find_ass_file(directory):
     japanese_file = None
@@ -83,18 +120,16 @@ log_tech(LOG_NAME, f"Input fájl: {INPUT_FILE} | Modell: {MODEL} | Output: {OUTP
 openai.api_key = OPENAI_API_KEY
 
 def translate_with_openai(text_list):
+    from scripts.logger import log_tech
     delimiter = "|||"
+    system_prompt = build_contextual_prompt(delimiter)
+    log_tech(LOG_NAME, "[DEBUG] Átadott system prompt:")
+    log_tech(LOG_NAME, system_prompt)
     try:
         response = openai.ChatCompletion.create(
             model=MODEL,
             messages=[
-                {"role": "system", "content": (
-                    "You are a professional translator. "
-                    "Translate each of the following lines to natural, idiomatic, and conversational Hungarian. "
-                    "Avoid literal translations. Instead, preserve the intended tone, mood, and context of each line. "
-                    f"Output the translations exactly separated by '{delimiter}'. "
-                    "Do not output anything else."
-                )},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": delimiter.join(text_list)}
             ]
         )
