@@ -15,6 +15,13 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 sys.path.insert(0, PROJECT_DIR)
 from scripts.logger import log_user_print, log_tech
+from scripts.estimate_translation_cost import (
+    extract_lines_from_ass,
+    extract_translatables,
+    estimate_token_count,
+    calculate_cost,
+    log_cost_estimate
+)
 LOG_NAME = "03_translate_subtitles"
 
 # 📌 Konfigurációs fájlok beolvasása
@@ -108,6 +115,15 @@ else:
     log_user_print(LOG_NAME, "❌ Ismeretlen nyelvi fájlformátum.")
     log_tech(LOG_NAME, f"Ismeretlen fájlnév: {INPUT_FILE}")
     exit(1)
+
+# 📌 Költségbecslés a fájl alapján
+ass_lines = extract_lines_from_ass(INPUT_FILE)
+translatables = extract_translatables(ass_lines)
+input_tokens, output_tokens = estimate_token_count(translatables, MODEL)
+cost = calculate_cost(input_tokens, output_tokens, MODEL)
+
+log_user_print(LOG_NAME, f"💡 Becsült fordítási költség: {cost:.2f} USD ({input_tokens} input token, {output_tokens} output token, modell: {MODEL})")
+log_cost_estimate(MODEL, input_tokens, output_tokens, cost, accepted=True)
 
 # 📌 Kimeneti fájl neve
 OUTPUT_FILE = INPUT_FILE.replace("_english", "_hungarian").replace("_japanese", "_hungarian")
