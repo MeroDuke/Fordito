@@ -2,6 +2,7 @@ import sys
 import os
 import json
 import hashlib
+import configparser
 
 # 📌 Mappák és fájlnevek
 
@@ -12,9 +13,11 @@ from scripts.logger import log_user_print, log_tech
 
 USERDATA_DIR = os.path.join(PROJECT_DIR, "userdata")
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
+CONFIG_DIR = os.path.join(PROJECT_DIR, "config")
 
 SPEAKER_FILE = os.path.join(USERDATA_DIR, "speakers.txt")
 COLOR_MAP_FILE = os.path.join(USERDATA_DIR, "character_color_map.json")
+POSTPROCESS_CONFIG = os.path.join(CONFIG_DIR, "postprocess_config.ini")
 
 LOG_NAME = "04_update_styles"
 
@@ -65,10 +68,20 @@ if not input_ass:
 with open(input_ass, "r", encoding="utf-8") as f:
     lines = f.readlines()
 
+# 📌 Új rész: postprocess_config.ini beolvasása
+ass_title = None
+if os.path.exists(POSTPROCESS_CONFIG):
+    config = configparser.ConfigParser()
+    config.read(POSTPROCESS_CONFIG, encoding="utf-8")
+    ass_title = config.get("postprocess", "ass_title", fallback="").strip()
+
 for i, line in enumerate(lines):
     if line.strip().lower().startswith("title:"):
-        lines[i] = "Title: Akihabarai Könyvespolc - AI fordítás\n"
-        log_tech(LOG_NAME, "Title mező frissítve.")
+        if ass_title:
+            lines[i] = f"Title: {ass_title}\n"
+            log_tech(LOG_NAME, f"Title mező frissítve: {ass_title}")
+        else:
+            log_tech(LOG_NAME, "Config üres: meglévő Title megmarad.")
         break
 
 output_ass = input_ass.replace(".ass", "_styled.ass")
