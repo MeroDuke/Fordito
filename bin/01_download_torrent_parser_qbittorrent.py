@@ -116,9 +116,10 @@ def get_torrent_status(torrent_hash):
         torrent = qb.torrents_info(torrent_hashes=torrent_hash)
         if torrent:
             t = torrent[0]
-            print(f"🌟 {t.name} | Állapot: {t.state} | Haladás: {t.progress * 100:.2f}%")
+            print(f"\r🌟 {t.name} | Állapot: {t.state} | Haladás: {t.progress * 100:.2f}%", end="", flush=True)
             log_tech(LOG_NAME, f"🌟 Torrent állapot: {t.name} | {t.state} | {t.progress * 100:.2f}%")
             if t.progress == 1.0:
+                print()  # Új sor, ha kész
                 print(f"✅ A torrent letötése befejeződött: {t.name}")
                 log_user(LOG_NAME, f"✅ Torrent letötve: {t.name}")
                 return True
