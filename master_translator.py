@@ -15,6 +15,7 @@ SCRIPT_PATHS = [
     "bin/04_update_character_gender_map.py",
     "bin/05_mkvtool_add_subtitle_to_mkv.py",
     "bin/06_discord_post_ASS.py",
+    "bin/07_cleanup_data_and_torrents.py",
 ]
 
 # Logfájl útvonala
