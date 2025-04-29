@@ -1,6 +1,6 @@
 # 🗂️ Verziótörténet – Subtitle Translator
 
-## [1.0.0.df4151f] – 2025-04-29
+## [1.0.0.] – 2025-04-29
 
 ### ✨ Elkészült funkciók
 
