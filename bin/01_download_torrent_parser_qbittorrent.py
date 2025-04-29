@@ -1,7 +1,6 @@
 import os
 import xml.etree.ElementTree as ET
 import requests
-import qbittorrentapi
 import time
 import configparser
 import sys
@@ -16,6 +15,8 @@ sys.path.insert(0, PROJECT_DIR)
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from episode_utils import extract_episode_id
 from download_log import is_episode_already_downloaded, add_episode_to_log
+from scripts.logger import log_user, log_tech, log_user_print
+from scripts.qbittorrent_client import create_client_from_config
 
 # 📌 Konfiguráció beolvasása a config.ini fájlból
 CONFIG_PATH = os.path.join(PROJECT_DIR, "config", "qbittorrent_config.ini")
@@ -34,26 +35,18 @@ TRUSTED_TAG = "Yes" if trusted_tag_raw == "yes" else "No"
 # 📌 RSS feed URL a TRUSTED_TAG alapján
 RSS_FEED_URL = "https://nyaa.si/?page=rss&c=0_0&f=2" if TRUSTED_TAG == "Yes" else "https://nyaa.si/?page=rss"
 
-# 📌 qBittorrent Web API beállítások
-QB_HOST = config.get("QBITTORRENT", "HOST", fallback="localhost")
-QB_PORT = config.getint("QBITTORRENT", "PORT", fallback=8080)
-QB_USERNAME = config.get("QBITTORRENT", "USERNAME")
-QB_PASSWORD = config.get("QBITTORRENT", "PASSWORD")
-
 # 📌 Projektmappa és log/adata mappák
 SCRIPT_DIR = CURRENT_DIR
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
 USERDATA_DIR = os.path.join(PROJECT_DIR, "userdata")
 TORRENT_LOG_PATH = os.path.join(USERDATA_DIR, "downloaded_torrents.json")
 
-# 📌 Log modul
-from scripts.logger import log_user, log_tech, log_user_print
+# 📌 Log név
 LOG_NAME = "01_download_torrent_parser_qbittorrent"
 
-# 📌 Csatlakozás qBittorrenthez
+# 📌 qBittorrent kliens inicializálása
 log_tech(LOG_NAME, "🔗 qBittorrent API kapcsolat inicializálása...")
-qb = qbittorrentapi.Client(host=QB_HOST, port=QB_PORT, username=QB_USERNAME, password=QB_PASSWORD)
-qb.auth_log_in()
+client = create_client_from_config(CONFIG_PATH)
 log_tech(LOG_NAME, "✅ qBittorrent API kapcsolat sikeres.")
 log_user(LOG_NAME, "✅ qBittorrent API kapcsolat sikeres.")
 
@@ -113,15 +106,14 @@ def update_episode_log_hash(entry_id, new_hash):
 
 def get_torrent_status(torrent_hash):
     try:
-        torrent = qb.torrents_info(torrent_hashes=torrent_hash)
+        torrent = client.get_torrent_status_by_hash(torrent_hash)
         if torrent:
-            t = torrent[0]
-            print(f"\r🌟 {t.name} | Állapot: {t.state} | Haladás: {t.progress * 100:.2f}%", end="", flush=True)
-            log_tech(LOG_NAME, f"🌟 Torrent állapot: {t.name} | {t.state} | {t.progress * 100:.2f}%")
-            if t.progress == 1.0:
-                print()  # Új sor, ha kész
-                print(f"✅ A torrent letötése befejeződött: {t.name}")
-                log_user(LOG_NAME, f"✅ Torrent letötve: {t.name}")
+            print(f"\r🌟 {torrent.name} | Állapot: {torrent.state} | Haladás: {torrent.progress * 100:.2f}%", end="", flush=True)
+            log_tech(LOG_NAME, f"🌟 Torrent állapot: {torrent.name} | {torrent.state} | {torrent.progress * 100:.2f}%")
+            if torrent.progress == 1.0:
+                print()
+                print(f"✅ A torrent letötése befejeződött: {torrent.name}")
+                log_user(LOG_NAME, f"✅ Torrent letötve: {torrent.name}")
                 return True
         else:
             print("⚠️ A torrent nem található.")
@@ -194,34 +186,19 @@ def parse_rss(rss_data):
 
 def add_torrent_to_qbittorrent(torrent_url, expected_title):
     try:
-        qb.torrents_add(urls=torrent_url, save_path=DATA_DIR)
+        client.add_torrent_by_url(torrent_url, DATA_DIR)
         print(f"✅ Torrent sikeresen hozzáadva: {torrent_url}")
         log_user(LOG_NAME, f"✅ Torrent hozzáadva: {torrent_url}")
-
-        # Várunk, hogy biztos bekerüljön a qBittorrent listájába
         time.sleep(5)
-
-        # Először rugalmas névegyezéssel próbálkozunk
-        matching = [t for t in qb.torrents_info() if expected_title.lower() in t.name.lower()]
-
-        # Ha nem találunk ilyet, próbáljuk meg a legutóbbi torrentet venni
-        torrent = None
-        if matching:
-            torrent = matching[0]
-        else:
-            torrents = sorted(qb.torrents_info(), key=lambda t: t.added_on, reverse=True)
-            if torrents:
-                torrent = torrents[0]
-
+        matching = [t for t in client.get_torrents_info() if expected_title.lower() in t.name.lower()]
+        torrent = matching[0] if matching else sorted(client.get_torrents_info(), key=lambda t: t.added_on, reverse=True)[0]
         if torrent:
             print(f"🔑 Torrent felismerve: {torrent.name} | Hash: {torrent.hash}")
             log_tech(LOG_NAME, f"🔑 Torrent felismerve: {torrent.name} | Hash: {torrent.hash}")
             return torrent.hash
-
         print(f"⚠️ Nem találtuk meg a hozzáadott torrentet: {expected_title}")
         log_tech(LOG_NAME, f"⚠️ Nem találtuk a hozzáadott torrentet: {expected_title}")
         return None
-
     except Exception as e:
         print(f"⚠️ Hiba történt a torrent hozzáadásakor: {e}")
         log_tech(LOG_NAME, f"⚠️ Hiba torrent hozzáadásakor: {e}")
@@ -230,12 +207,10 @@ def add_torrent_to_qbittorrent(torrent_url, expected_title):
 if __name__ == "__main__":
     log_user(LOG_NAME, "🔄 Script indul, RSS feed letöltés kezdődik...")
     rss_data = download_rss()
-
     if rss_data:
         log_user_print(LOG_NAME, "🔍 RSS fájl elemzése...")
         log_tech(LOG_NAME, "🔍 RSS adat beolvasva, feldolgozás következik...")
         best_torrent = parse_rss(rss_data)
-
         if best_torrent:
             log_user_print(LOG_NAME, f"📅 Torrent kiválasztva: {best_torrent['title']}")
             torrent_hash = add_torrent_to_qbittorrent(best_torrent["link"], best_torrent["title"])
