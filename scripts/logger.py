@@ -1,5 +1,7 @@
 import os
 import datetime
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
 
 # Master kapcsoló
 LOG_ENABLED = False

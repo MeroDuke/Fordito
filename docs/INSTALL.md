@@ -17,7 +17,9 @@ Ez a dokumentáció lépésről lépésre bemutatja, hogyan lehet beállítani �
 A következő Python csomagokat manuálisan kell telepíteni `pip` segítségével:
 
 ```bash
-pip install requests tqdm openai tiktoken qbittorrent-api
+
+pip install requests tqdm openai tiktoken qbittorrent-api pytest pytest-html
+
 ```
 
 ---
@@ -69,8 +71,11 @@ cd Fordito
 3. Válassz futtatási módot:
     3/A. Futtasd a scripteket külön-külön, egymás után, ha manuálisan szeretnéd végrehajtani a lépéseket.
     3/B. Futtasd a fő scriptet (master_translator.py), ha a teljes folyamatot egyben szeretnéd elindítani:
+
 ```bash
+
 python master_translator.py
+
 ```
 
 > A rendszer automatikusan felismeri a legfrissebb feliratot és elvégzi a fordítást.
@@ -82,5 +87,18 @@ python master_translator.py
 - 3/A: Ha a data/ mappában és a Discord csatornán is megjelenik egy új .hungarian.ass fájl, akkor a rendszer helyesen működik.
 - 3/B: Ha a Discord csatornán megjelenik egy új .hungarian.ass fájl, akkor a rendszer helyesen működik.
 - Hiba esetén a részletes naplók a logs/ mappában találhatók.
+
+---
+
+## 🧪 Tesztelés
+
+A projekt teljes tesztkészlete lefuttatható a következő paranccsal:
+
+```bash
+
+python master_test_automation.py
+
+```
+Ez a parancs a tests/ mappa minden tesztjét lefuttatja, és opcionálisan HTML riportot is készít a logs/ mappába (ha engedélyezve van a logolás).
 
 ---

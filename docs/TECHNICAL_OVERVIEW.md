@@ -10,6 +10,7 @@ Ez a dokumentáció a fejlesztők számára készült, hogy gyorsan átlássák 
 - **scripts/** – Újrafelhasználható Python modulok
 - **config/** – Konfigurációs fájlok (INI/JSON)
 - **data/** – Bemeneti és kimeneti .ass fájlok
+- **tests/** – Teszt Automata fájlok
 - **userdata/** – Beszélőnevek, színek és egyéb adatok
 - **logs/** – Naplózott hibák, figyelmeztetések
 
@@ -47,6 +48,7 @@ Ez a dokumentáció a fejlesztők számára készült, hogy gyorsan átlássák 
 
 | Modul | Leírás |
 |-------|--------|
+| `color_utils.py`  | Karakter szinezés segédlet
 | `context_lookup.py` | Extra kontextus keresése egy adott címhez |
 | `download_log.py` | Letöltési események naplózása |
 | `episode_utils.py` | Epizód-specifikus segédfüggvények |
@@ -74,13 +76,29 @@ Ez a dokumentáció a fejlesztők számára készült, hogy gyorsan átlássák 
 
 - A legtöbb bin/script modulos formában készült, így külön-külön is futtatható.
 - A `master_translator.py` lineárisan végrehajtja az összes lépést.
+- A `master_test_automation.py`lineárisan lefuttatja az összes automata tesztet.
 - A `logs/` mappa tartalma alapértelmezetten nem jön létre, de hiba esetén automatikusan generálódik.
+
+---
+
+```markdown
+## 🧪 Tesztfuttatás
+
+A teljes projekt tesztelése a gyökérmappában található `master_test_automation.py` script segítségével történik:
+
+```bash
+python master_test_automation.py
+
+```
+Ez minden tests/ alatti modult lefuttat, és opcionálisan HTML riportot generál a logs/ mappába.
 
 ---
 
 ## 📝 Záró megjegyzés
 
-Ez a technikai dokumentáció a Subtitle Translator projekt **1.0 verziójához** készült.  
+Ez a technikai dokumentáció a Subtitle Translator projekt **1.1.0 verziójához** készült.  
 A dokumentáció célja, hogy egy fejlesztő rövid idő alatt átlássa a rendszer felépítését, működését és a főbb összefüggéseket.
 
 További fejlesztések (pl. API integráció, bővített moduláris struktúra, automatizált tesztelés) esetén ajánlott a dokumentációt kiegészíteni, illetve részletesebb ábrákkal vagy folyamatleírásokkal bővíteni.
+
+---
