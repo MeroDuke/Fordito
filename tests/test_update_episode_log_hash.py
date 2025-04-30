@@ -1,0 +1,133 @@
+import importlib.util
+import os
+import sys
+from datetime import datetime
+import json
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+sys.path.insert(0, PROJECT_DIR)
+
+# Dinamikus import a 01_download_torrent_parser_qbittorrent.py modulhoz
+module_path = os.path.join(PROJECT_DIR, "bin", "01_download_torrent_parser_qbittorrent.py")
+spec = importlib.util.spec_from_file_location("parser", module_path)
+parser = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(parser)
+
+def test_parse_rss_returns_expected(tmp_path):
+    test_log_path = tmp_path / "downloaded_torrents.json"
+    parser.TORRENT_LOG_PATH = str(test_log_path)
+
+    rss = '''<?xml version="1.0" encoding="UTF-8"?>
+    <rss version="2.0" xmlns:nyaa="https://nyaa.si/xmlns/nyaa">
+      <channel>
+        <title>Nyaa.si Feed</title>
+        <item>
+          <title>Bleach - 03</title>
+          <link>magnet:?xt=urn:btih:ABC123DEF456</link>
+          <nyaa:trusted>Yes</nyaa:trusted>
+        </item>
+      </channel>
+    </rss>
+    '''
+
+    parser.KEYWORDS[:] = ["bleach"]
+    parser.PREFERRED_QUALITY[:] = [""]
+    parser.TARGET_TORRENT_MATCH[:] = []
+    parser.TRUSTED_TAG = "Yes"
+
+    parser.extract_episode_id = lambda title: "S01E03"
+    parser.is_title_already_downloaded = lambda episode_id: False
+
+    result = parser.parse_rss(rss)
+    assert result is not None
+    assert result["title"] == "Bleach - 03"
+    assert result["link"].startswith("magnet:")
+
+def test_add_episode_id_to_log_stub_creates_file(tmp_path):
+    test_log_path = tmp_path / "downloaded_torrents.json"
+    parser.TORRENT_LOG_PATH = str(test_log_path)
+
+    result_id = parser.add_episode_id_to_log_stub("S01E03", "Bleach - 03", "https://nyaa.si/view/123")
+
+    assert result_id == "1"
+    assert test_log_path.exists()
+
+    data = json.loads(test_log_path.read_text(encoding="utf-8"))
+    assert "1" in data
+    assert data["1"]["episode_id"] == "S01E03"
+    assert data["1"]["title"] == "Bleach - 03"
+    assert data["1"]["source"] == "https://nyaa.si/view/123"
+    assert "added_at" in data["1"]
+
+def test_add_episode_id_to_log_stub_appends_entry(tmp_path):
+    test_log_path = tmp_path / "downloaded_torrents.json"
+    parser.TORRENT_LOG_PATH = str(test_log_path)
+
+    parser.add_episode_id_to_log_stub("S01E03", "Bleach - 03", "url1")
+    second_id = parser.add_episode_id_to_log_stub("S01E04", "Bleach - 04", "url2")
+
+    assert second_id == "2"
+
+    data = json.loads(test_log_path.read_text(encoding="utf-8"))
+    assert len(data) == 2
+    assert data["2"]["episode_id"] == "S01E04"
+    assert data["2"]["title"] == "Bleach - 04"
+    assert data["2"]["source"] == "url2"
+    assert "added_at" in data["2"]
+
+def test_load_downloaded_hashes_missing_file(tmp_path):
+    parser.TORRENT_LOG_PATH = str(tmp_path / "not_exists.json")
+    result = parser.load_downloaded_hashes()
+    assert isinstance(result, dict)
+    assert result == {}
+
+def test_load_downloaded_hashes_valid_json(tmp_path):
+    json_path = tmp_path / "downloaded_torrents.json"
+    content = {
+        "1": {
+            "episode_id": "S01E01",
+            "title": "Test Show",
+            "hash": "abc123",
+            "source": "url"
+        }
+    }
+    json_path.write_text(json.dumps(content), encoding="utf-8")
+    parser.TORRENT_LOG_PATH = str(json_path)
+    result = parser.load_downloaded_hashes()
+    assert result == content
+
+def test_load_downloaded_hashes_invalid_json(tmp_path):
+    json_path = tmp_path / "downloaded_torrents.json"
+    json_path.write_text('{"1": "bad_json",}', encoding="utf-8")
+    parser.TORRENT_LOG_PATH = str(json_path)
+    result = parser.load_downloaded_hashes()
+    assert isinstance(result, dict)
+    assert result == {}
+
+def test_update_episode_log_hash_existing_entry(tmp_path):
+    json_path = tmp_path / "downloaded_torrents.json"
+    content = {
+        "1": {
+            "episode_id": "S01E01",
+            "title": "Test Show",
+            "hash": "",
+            "source": "url"
+        }
+    }
+    json_path.write_text(json.dumps(content), encoding="utf-8")
+    parser.TORRENT_LOG_PATH = str(json_path)
+
+    parser.update_episode_log_hash("1", "newhash123")
+    data = json.loads(json_path.read_text(encoding="utf-8"))
+    assert data["1"]["hash"] == "newhash123"
+
+def test_update_episode_log_hash_creates_entry_if_missing(tmp_path):
+    json_path = tmp_path / "downloaded_torrents.json"
+    parser.TORRENT_LOG_PATH = str(json_path)
+
+    parser.update_episode_log_hash("2", "anotherhash456")
+    data = json.loads(json_path.read_text(encoding="utf-8"))
+    assert "2" in data
+    assert data["2"]["hash"] == "anotherhash456"
+    assert data["2"]["episode_id"] == "2"
