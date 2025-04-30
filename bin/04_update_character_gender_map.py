@@ -38,15 +38,8 @@ if os.path.exists(SPEAKER_FILE):
         for line in f:
             name = line.strip()
             if name and name not in color_map:
-                h = hashlib.md5(name.encode()).hexdigest()
-                r = int(h[0:2], 16)
-                g = int(h[2:4], 16)
-                b = int(h[4:6], 16)
-                if perceived_brightness(r, g, b) > BRIGHTNESS_THRESHOLD:
-                    r = int(r * 0.5)
-                    g = int(g * 0.5)
-                    b = int(b * 0.5)
-                color_map[name] = f"&H{b:02X}{g:02X}{r:02X}&"
+                from scripts.color_utils import generate_color_for_name
+                color_map[name] = generate_color_for_name(name)
                 log_tech(LOG_NAME, f"Szín generálva: {name} -> {color_map[name]}")
 
 with open(COLOR_MAP_FILE, "w", encoding="utf-8") as f:
