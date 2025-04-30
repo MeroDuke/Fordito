@@ -1,5 +1,16 @@
 # 🗂️ Verziótörténet – Subtitle Translator
 
+## [1.0.1] – 2025-04-30
+
+### 🐛 Bugfixek és pontosítások
+
+- A költségbecslő modul (estimate_translation_cost.py) most már valósághű tokenhasználat alapján számol becslést.
+- Az input tokenek figyelembe veszik a teljes rendszerprompt + batchen belüli összefűzött `user` szöveget.
+- Az output tokenek becslése konzervatív `×1.7` szorzóval történik, hogy a valós költség alatt ne maradjon a jelzett érték.
+- Ez a módosítás a `03_OpenAI_API_ONLY_4-Turbo_translate_ass.py` scripten keresztül is érvényesül.
+
+---
+
 ## [1.0.0.] – 2025-04-29
 
 ### ✨ Elkészült funkciók
