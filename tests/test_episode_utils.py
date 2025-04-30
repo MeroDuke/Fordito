@@ -26,3 +26,20 @@ def test_extract_episode_id_from_invalid_title():
     title = "Just a random string"
     result = extract_episode_id(title)
     assert result is None
+
+from scripts.episode_utils import is_episode_id
+
+def test_is_episode_id_valid():
+    assert is_episode_id("S01E03") is True
+
+def test_is_episode_id_zero_series():
+    assert is_episode_id("S00E01") is True
+
+def test_is_episode_id_missing_prefix():
+    assert is_episode_id("03") is False
+
+def test_is_episode_id_bad_format():
+    assert is_episode_id("S1E3") is False
+
+def test_is_episode_id_random_string():
+    assert is_episode_id("random_text") is False
