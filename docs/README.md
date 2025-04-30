@@ -29,7 +29,7 @@ Fordito/
 ├─ data/          # Bemeneti és kimeneti .ass fájlok
 ├─ logs/          # Logfájlok és figyelmeztetések
 ├─ scripts/       # Segéd- és fejlesztési scriptek
-├─ test/          # Automata Tesztek
+├─ tests/          # Automata Tesztek
 ├─ userdata/      # Beszélőnevek, színadatok, egyéb felhasználói adatok
 ├─ .env           # (Opcionális) környezeti változók
 └─ master_translator.py  # Az egész folyamatot végrehajtó vezérlőscript
