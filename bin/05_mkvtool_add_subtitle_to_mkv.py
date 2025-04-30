@@ -9,7 +9,7 @@ sys.path.insert(0, PROJECT_DIR)
 from scripts.logger import log_user_print, log_tech
 LOG_NAME = "05_add_subs"
 
-DATA_DIR = os.path.join(PROJECT_DIR, "data")
+DATA_DIR = os.environ.get("FORDITO_DATA_DIR", os.path.join(PROJECT_DIR, "data"))
 
 mkv_files = [f for f in os.listdir(DATA_DIR) if f.endswith(".mkv")]
 ass_files = [f for f in os.listdir(DATA_DIR) if f.endswith(".ass") and "_hungarian_styled." in f]
@@ -47,7 +47,7 @@ for mkv_file in mkv_files:
 
     command_str = " ".join(command)
     log_tech(LOG_NAME, f"Futtatandó parancs: {command_str}")
-    log_user_print(LOG_NAME, f"🚀 MKVToolNix futtatása")
+    log_user_print(LOG_NAME, "MKVToolNix futtatása")
 
     try:
         result = subprocess.run(command, check=True, capture_output=True, text=True)
