@@ -21,3 +21,10 @@ def extract_episode_id(title: str) -> str | None:
         return f"{anime_name} - S01E{episode:02}"
 
     return None
+
+def is_episode_id(value: str) -> bool:
+    """
+    Ellenőrzi, hogy egy string epizódazonosító formátumú-e.
+    Példa: 'S01E03', 'S02E11', 'S00E01'
+    """
+    return bool(re.match(r'^S\d{2}E\d{2,4}$', value))
