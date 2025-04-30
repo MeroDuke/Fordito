@@ -29,6 +29,7 @@ Fordito/
 ├─ data/          # Bemeneti és kimeneti .ass fájlok
 ├─ logs/          # Logfájlok és figyelmeztetések
 ├─ scripts/       # Segéd- és fejlesztési scriptek
+├─ test/          # Automata Tesztek
 ├─ userdata/      # Beszélőnevek, színadatok, egyéb felhasználói adatok
 ├─ .env           # (Opcionális) környezeti változók
 └─ master_translator.py  # Az egész folyamatot végrehajtó vezérlőscript
@@ -42,7 +43,7 @@ Fordito/
 
 ```bash
 
-git clone <https://github.com/MeroDuke/Fordito.git>
+git clone https://github.com/MeroDuke/Fordito.git
 cd Fordito
 
 ```
@@ -66,6 +67,27 @@ Bármelyik módszert választod:
 - Ha hiba történik, a részleteket a `logs/` mappában találod meg. A logolás alapból ki van kapcsolva; a `scripts/logger.py` fájlban lehet ki- és bekapcsolni.
 
 ---
+
+## 🧪 Automatikus tesztelés
+
+A projekt teljes körű unit tesztlefedettséggel rendelkezik. A tesztek a `tests/` mappában találhatók, és a következőképpen futtathatók:
+
+### Tesztek indítása
+
+```bash
+
+python master_test_automation.py
+
+```
+Ez a script:
+
+lefuttatja az összes pytest tesztet
+
+ha a logolás engedélyezve van (scripts/logger.py > LOG_ENABLED = True), akkor:
+
+részletes HTML riportot generál a logs/ mappába
+
+a riport neve: YYYY-MM-DD_HH-MM-SS_pytest_report.html
 
 ## 📌 Állapot
 
