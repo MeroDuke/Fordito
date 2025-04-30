@@ -22,6 +22,7 @@ config.read("config/config.ini")
 
 MODEL_ENG = config.get("OPENAI", "MODEL_ENG", fallback="gpt-4-turbo")
 MODEL_JPN = config.get("OPENAI", "MODEL_JPN", fallback="gpt-4o")
+BATCH_SIZE = config.getint("OPENAI", "BATCH_SIZE", fallback=20)
 
 model_price_map = {
     "gpt-4": {"input": 0.01, "output": 0.03},
@@ -78,12 +79,32 @@ def extract_translatables(lines):
     log_tech(LOG_NAME, f"Fordítandó sorok száma: {len(trans)}")
     return trans
 
-def estimate_token_count(all_translatables, model):
+def estimate_token_count_precise(all_translatables, model, batch_size=BATCH_SIZE):
     enc = tiktoken.encoding_for_model(model)
-    input_tokens = sum(len(enc.encode(f"Translate this to Hungarian: {line}")) for line in all_translatables)
-    output_tokens = sum(len(enc.encode(line)) for line in all_translatables)
-    log_tech(LOG_NAME, f"Token becslés | input: {input_tokens}, output: {output_tokens}")
-    return input_tokens, output_tokens
+    delimiter = "|||"
+    system_prompt = (
+        "You are a professional translator.\n"
+        "Translate each of the following lines to natural, idiomatic, and conversational Hungarian.\n"
+        "Output the translations exactly separated by '|||'.\n"
+        "Do not output anything else."
+    )
+
+    total_input_tokens = 0
+    total_output_tokens = 0
+
+    for i in range(0, len(all_translatables), batch_size):
+        batch = all_translatables[i:i+batch_size]
+        joined_batch = delimiter.join(batch)
+        input_tokens = len(enc.encode(system_prompt)) + len(enc.encode(joined_batch))
+        output_tokens = int(len(enc.encode(joined_batch)) * 1.7)  # magyar hosszabb
+
+        total_input_tokens += input_tokens
+        total_output_tokens += output_tokens
+
+        log_tech(LOG_NAME, f"[BATCH DEBUG] input: {input_tokens}, becsült output: {output_tokens}, összes input eddig: {total_input_tokens}, output eddig: {total_output_tokens}")
+
+    log_tech(LOG_NAME, f"Token becslés (precíz) | input: {total_input_tokens}, output: {total_output_tokens}")
+    return total_input_tokens, total_output_tokens
 
 def calculate_cost(input_tokens, output_tokens, model):
     prices = model_price_map.get(model)
@@ -140,7 +161,7 @@ def main():
 
     lines = extract_lines_from_ass(ass_path)
     all_translatables = extract_translatables(lines)
-    input_tokens, output_tokens = estimate_token_count(all_translatables, model)
+    input_tokens, output_tokens = estimate_token_count_precise(all_translatables, model)
     cost = calculate_cost(input_tokens, output_tokens, model)
 
     log_user_print(LOG_NAME, f"💡 Becsült költség: {cost:.2f} USD ({input_tokens} input token, {output_tokens} output token, modell: {model})")

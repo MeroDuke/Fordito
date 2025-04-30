@@ -18,10 +18,11 @@ from scripts.logger import log_user_print, log_tech
 from scripts.estimate_translation_cost import (
     extract_lines_from_ass,
     extract_translatables,
-    estimate_token_count,
+    estimate_token_count_precise,
     calculate_cost,
     log_cost_estimate
 )
+
 LOG_NAME = "03_translate_subtitles"
 
 # 📌 Konfigurációs fájlok beolvasása
@@ -116,12 +117,11 @@ else:
     log_tech(LOG_NAME, f"Ismeretlen fájlnév: {INPUT_FILE}")
     exit(1)
 
-# 📌 Költségbecslés a fájl alapján
+# 📌 Költségbecslés a fájl alapján (valósághű modell szerint)
 ass_lines = extract_lines_from_ass(INPUT_FILE)
 translatables = extract_translatables(ass_lines)
-input_tokens, output_tokens = estimate_token_count(translatables, MODEL)
+input_tokens, output_tokens = estimate_token_count_precise(translatables, MODEL, BATCH_SIZE)
 cost = calculate_cost(input_tokens, output_tokens, MODEL)
-
 log_user_print(LOG_NAME, f"💡 Becsült fordítási költség: {cost:.2f} USD ({input_tokens} input token, {output_tokens} output token, modell: {MODEL})")
 log_cost_estimate(MODEL, input_tokens, output_tokens, cost, accepted=True)
 
@@ -149,6 +149,10 @@ def translate_with_openai(text_list):
                 {"role": "user", "content": delimiter.join(text_list)}
             ]
         )
+        # 🔢 Valós tokenhasználat logolása
+        if hasattr(response, "usage"):
+            log_tech(LOG_NAME, f"[USAGE] prompt: {response.usage['prompt_tokens']}, completion: {response.usage['completion_tokens']}, total: {response.usage['total_tokens']}")
+
         output = response.choices[0].message.content.strip()
         translations = output.split(delimiter)
         translations = [t.strip() for t in translations if t.strip()]
