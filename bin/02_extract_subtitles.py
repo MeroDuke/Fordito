@@ -23,8 +23,8 @@ def check_dependency(command):
         raise EnvironmentError(f"'{command}' parancs nem található. Telepítsd a szükséges csomagot.")
 
 
-def run_command(command, error_message):
-    result = subprocess.run(command, capture_output=True, text=True)
+def run_command(command, error_message, shell=False):
+    result = subprocess.run(command, capture_output=True, text=True, shell=shell)
     if result.returncode != 0:
         log_tech(LOG_NAME, f"{error_message}\n{result.stderr.strip()}")
         raise RuntimeError(f"{error_message}\n{result.stderr.strip()}")
@@ -133,7 +133,7 @@ def extract_bitmap_subtitle(mkv_info, mkv_file, language_codes, output_suffix):
     return False
 
 
-if __name__ == "__main__":
+def main():
     try:
         check_dependency("mkvmerge")
         check_dependency("mkvextract")
@@ -163,3 +163,7 @@ if __name__ == "__main__":
             log_tech(LOG_NAME, f"MKV info feldolgozási hiba: {e}")
     else:
         log_user_print(LOG_NAME, "⚠️ Nincs MKV fájl a 'data' mappában.")
+
+
+if __name__ == "__main__":
+    main()
