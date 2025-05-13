@@ -109,27 +109,32 @@ def extract_subtitle(mkv_info, mkv_file, language_codes, output_suffix, fallback
 
 
 def extract_bitmap_subtitle(mkv_info, mkv_file, language_codes, output_suffix):
+    log_tech(LOG_NAME, f"▶️ Vizsgált language_codes: {language_codes}")
     base_name = os.path.splitext(mkv_file)[0]
     output_sup = f"{base_name}_{output_suffix}.sup"
     output_ass = f"{base_name}_{output_suffix}.ass"
 
     for track in mkv_info.get("tracks", []):
-        if (
-            track.get("type") == "subtitles"
-            and track.get("codec_id") == "S_HDMV/PGS"
-            and track.get("properties", {}).get("language", "").lower() in language_codes
-        ):
-            track_id = track["id"]
-            log_user_print(LOG_NAME, f"✅ {output_suffix.capitalize()} bitmap felirat megtalálva: Track ID {track_id}")
-            extract_command = ["mkvextract", "tracks", mkv_file, f"{track_id}:{output_sup}"]
-            try:
-                run_command(extract_command, f"❌ Hiba a {output_suffix} .sup kinyerésekor!")
-                log_user_print(LOG_NAME, f"✅ {output_suffix} .sup fájl kinyerve: {output_sup}")
-                from scripts.sup_to_ass import convert_sup_to_ass
-                convert_sup_to_ass(output_sup, output_ass, lang=output_suffix)
-                return True
-            except RuntimeError as e:
-                log_tech(LOG_NAME, str(e))
+        if track.get("type") == "subtitles":
+            lang = track.get("properties", {}).get("language", "").lower()
+            codec = track.get("properties", {}).get("codec_id")
+            forced = track.get("properties", {}).get("forced_track", False)
+            track_id = track.get("id")
+            log_tech(LOG_NAME, f"🔎 Felirat track vizsgálat: id={track_id} | lang={lang} | codec={codec} | forced={forced}")
+
+            if codec == "S_HDMV/PGS" and lang in language_codes and not forced:
+                track_id = track["id"]
+                log_user_print(LOG_NAME, f"✅ {output_suffix.capitalize()} bitmap felirat megtalálva: Track ID {track_id}")
+                extract_command = ["mkvextract", "tracks", mkv_file, f"{track_id}:{output_sup}"]
+                try:
+                    run_command(extract_command, f"❌ Hiba a {output_suffix} .sup kinyerésekor!")
+                    log_user_print(LOG_NAME, f"✅ {output_suffix} .sup fájl kinyerve: {output_sup}")
+                    from scripts.sup_to_ass import convert_sup_to_ass
+                    convert_sup_to_ass(output_sup, output_ass, lang=output_suffix)
+                    return True
+                except RuntimeError as e:
+                    log_tech(LOG_NAME, str(e))
+    log_tech(LOG_NAME, f"❌ Nincs megfelelő {output_suffix} bitmap felirat track.")
     return False
 
 
