@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import re
 from configparser import ConfigParser
 import requests
 
@@ -78,24 +79,45 @@ def match_torrent(project_root, subtitle_filename):
 
     subtitle_lower = subtitle_filename.lower()
 
+    # 1. Próbálunk hash prefix alapján egyezni (legelső prioritás)
+    hash_match = re.search(r'\[([0-9A-Fa-f]{8})\]', subtitle_filename)
+    if hash_match:
+        hash_prefix = hash_match.group(1).lower()
+        for key, value in torrents.items():
+            if not isinstance(value, dict):
+                continue
+            full_hash = value.get("hash", "").lower()
+            if full_hash.startswith(hash_prefix):
+                log_tech(LOG_NAME, f"✅ Torrent match by hash prefix: {hash_prefix} → {value.get('source')}")
+                return value.get("source")
+
+    # 2. Próbáljuk title alapján
     for key, value in torrents.items():
         if not isinstance(value, dict):
             continue
         title = value.get("title", "").lower()
-        episode_id = value.get("episode_id", "").lower()
-        key_str = str(key).lower()
-
         if title and title in subtitle_lower:
             log_tech(LOG_NAME, f"Torrent match by title: {title}")
             return value.get("source")
+
+    # 3. Próbáljuk episode_id alapján
+    for key, value in torrents.items():
+        if not isinstance(value, dict):
+            continue
+        episode_id = value.get("episode_id", "").lower()
         if episode_id and episode_id in subtitle_lower:
             log_tech(LOG_NAME, f"Torrent match by episode_id: {episode_id}")
             return value.get("source")
+
+    # 4. Próbáljuk key alapján (legvégső fallback, ha minden más kudarcot vallott)
+    for key, value in torrents.items():
+        key_str = str(key).lower()
         if key_str and key_str in subtitle_lower:
-            log_tech(LOG_NAME, f"Torrent match by key: {key_str}")
+            log_tech(LOG_NAME, f"Torrent match by key (last resort): {key_str}")
             return value.get("source")
 
-    log_tech(LOG_NAME, "Nem sikerült torrenthez párosítani a feliratot.")
+    # 5. Semmi sem talált
+    log_tech(LOG_NAME, "❌ Nem sikerült torrenthez párosítani a feliratot (hash + fallback sem talált).")
     return None
 
 def main():
