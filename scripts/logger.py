@@ -13,12 +13,12 @@ def find_project_root():
         # Git-alapú keresés (fejlesztőknek)
         if (current / ".git").is_dir():
             return current
-        # Fallback: ha .git nincs, keressük a tipikus mappákat
-        required_dirs = ["bin", "scripts", "data", "config", "userdata"]
+        # Fallback: ha .git nincs, keressük a tipikus mappákat (lazított feltétel)
+        required_dirs = ["bin", "scripts", "config"]
         if all((current / d).is_dir() for d in required_dirs):
             return current
         current = current.parent
-    raise RuntimeError("❌ Nem található projektgyökér: se .git, se jellemző mappastruktúra.")
+    raise RuntimeError("❌ Nem található projektgyökér: se .git, se minimális mappastruktúra.")
 
 PROJECT_ROOT = find_project_root()
 CONFIG_PATH = os.path.join(PROJECT_ROOT, "config", "logger_config.ini")
