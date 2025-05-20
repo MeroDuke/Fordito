@@ -2,30 +2,11 @@ import os
 import datetime
 import configparser
 import sys
-sys.stdout.reconfigure(encoding='utf-8')
-
-# Config olvasás
-def is_logging_enabled(config_file='config/logger_config.ini'):
-    config = configparser.ConfigParser()
-    try:
-        if not os.path.exists(config_file):
-            print("⚠ Logger config fájl hiányzik, logolás tiltva.")
-            return False
-        config.read(config_file, encoding='utf-8')
-        value = config.get('logger', 'log_enabled', fallback='false').strip().lower()
-        if value == 'true':
-            return True
-        elif value == 'false':
-            return False
-        else:
-            print(f"⚠ Ismeretlen log_enabled érték a configban: '{value}' → logolás tiltva.")
-            return False
-    except Exception as e:
-        print(f"⚠ Logger config olvasási hiba: {e} → logolás tiltva.")
-        return False
-
 from pathlib import Path
 
+sys.stdout.reconfigure(encoding='utf-8')
+
+# Projektgyökér meghatározása
 def find_project_root():
     current = Path(__file__).resolve()
     for _ in range(5):  # ne menjünk túl mélyre
@@ -40,10 +21,32 @@ def find_project_root():
     raise RuntimeError("❌ Nem található projektgyökér: se .git, se jellemző mappastruktúra.")
 
 PROJECT_ROOT = find_project_root()
-LOG_DIR = os.path.join(PROJECT_ROOT, "logs")
 CONFIG_PATH = os.path.join(PROJECT_ROOT, "config", "logger_config.ini")
-LOG_ENABLED = is_logging_enabled(CONFIG_PATH)
+LOG_DIR = os.path.join(PROJECT_ROOT, "logs")
 os.makedirs(LOG_DIR, exist_ok=True)
+
+# Config olvasás
+def is_logging_enabled(config_file=CONFIG_PATH):
+    config = configparser.ConfigParser()
+    try:
+        if not os.path.exists(config_file):
+            print(f"⚠ Logger config fájl nem található: {config_file} → logolás tiltva.")
+            return False
+        config.read(config_file, encoding='utf-8')
+        value = config.get('logger', 'log_enabled', fallback='false').strip().lower()
+        if value == 'true':
+            return True
+        elif value == 'false':
+            return False
+        else:
+            print(f"⚠ Ismeretlen log_enabled érték a configban: '{value}' → logolás tiltva.")
+            return False
+    except Exception as e:
+        print(f"⚠ Logger config olvasási hiba: {e} → logolás tiltva.")
+        return False
+
+# Master kapcsoló (runtime based)
+LOG_ENABLED = is_logging_enabled()
 
 def _get_log_path(script_name: str, suffix: str) -> str:
     date_str = datetime.datetime.now().strftime('%Y-%m-%d')
