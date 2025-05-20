@@ -93,3 +93,13 @@ a riport neve: YYYY-MM-DD\_HH-MM-SS\_pytest\_report.html
 ## 📌 Állapot
 
 Ez a `README.md` fájl a felhasználói útmutató alapváltozata. A projekt további dokumentációi a `docs/` mappába kerülnek (telepítés, konfigurációk, verziózás, technikai részletek).
+
+---
+
+## 📄 Licenc
+
+Ez a projekt a [Creative Commons Nevezd meg! – Ne add el! – Ne változtasd! 4.0 Nemzetközi](https://creativecommons.org/licenses/by-nc-nd/4.0/deed.hu) licenc alatt áll.
+
+© 2025 AK Fordító
+
+A kód és dokumentáció szabadon megtekinthető és megosztható **nem kereskedelmi célokra**, **változtatás nélkül**, a szerző nevének feltüntetése mellett.
