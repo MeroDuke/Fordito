@@ -103,3 +103,5 @@ Ez a projekt a [Creative Commons Nevezd meg! – Ne add el! – Ne változtasd! 
 © 2025 AK Fordító
 
 A kód és dokumentáció szabadon megtekinthető és megosztható **nem kereskedelmi célokra**, **változtatás nélkül**, a szerző nevének feltüntetése mellett.
+
+A projekt által használt külső szoftverek részletes listája megtalálható a NOTICE fájlban.
