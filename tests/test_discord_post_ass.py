@@ -66,6 +66,7 @@ def test_main_does_not_send_real_request(tmp_path):
 
     with patch("bin.06_discord_post_ASS.requests.post") as mock_post:
         mock_post.return_value.status_code = 200
+        discord_post_script.PROJECT_DIR = str(tmp_path)
         discord_post_script.CONFIG_FILENAME = config_file.name
         discord_post_script.DATA_DIRNAME = data_dir.name
         discord_post_script.USERDATA_DIRNAME = userdata_dir.name
