@@ -1,5 +1,5 @@
 # Kimeneti és ideiglenes fájlok
-
+data/
 logs/
 *.log
 *.tmp
