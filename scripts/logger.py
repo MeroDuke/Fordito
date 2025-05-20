@@ -27,13 +27,20 @@ def is_logging_enabled(config_file='config/logger_config.ini'):
 # Master kapcsoló (runtime based)
 LOG_ENABLED = is_logging_enabled()
 
-def find_project_root(marker=".git"):
-    current = os.path.abspath(os.path.dirname(__file__))
-    while current != os.path.dirname(current):
-        if os.path.isdir(os.path.join(current, marker)):
+from pathlib import Path
+
+def find_project_root():
+    current = Path(__file__).resolve()
+    for _ in range(5):  # ne menjünk túl mélyre
+        # Git-alapú keresés (fejlesztőknek)
+        if (current / ".git").is_dir():
             return current
-        current = os.path.dirname(current)
-    raise RuntimeError("❌ Nem található projektgyökér (nincs .git mappa)")
+        # Fallback: ha .git nincs, keressük a tipikus mappákat
+        required_dirs = ["bin", "scripts", "data", "config", "userdata"]
+        if all((current / d).is_dir() for d in required_dirs):
+            return current
+        current = current.parent
+    raise RuntimeError("❌ Nem található projektgyökér: se .git, se jellemző mappastruktúra.")
 
 PROJECT_ROOT = find_project_root()
 LOG_DIR = os.path.join(PROJECT_ROOT, "logs")
