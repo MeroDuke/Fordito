@@ -1,5 +1,21 @@
 # 🗂️ Verziótörténet – Subtitle Translator
 
+## \[1.3.0] – 2025-05-20
+
+### ✅ Új funkciók
+
+* `logger_config.ini` fájl bevezetése – a logolás vezérlése konfigurációs fájlból történik
+* `logger.py` frissítve: automatikusan beolvassa a konfigurációt, ha elérhető
+* Új logika a `06_discord_post_ASS.py` scriptben: torrent párosítás elsődlegesen hash alapján történik
+* Verziókövetés dokumentumként (`VERSION.md`) kiegészítve
+
+### 📄 Dokumentáció
+
+* `INSTALL.md`, `README.md`, `TECHNICAL_OVERVIEW.md`, `CONFIG_FILES.md` frissítve az új logolási rendszerre
+* `RELEASE_NOTES.md` fájl elkészült
+
+---
+
 ## \[1.2.0] – 2025-05-13
 
 ### ✅ Új funkciók
@@ -34,7 +50,7 @@
 * A `logger.py` frissítve: támogatja az UTF-8 karakterkódolást, Unicode kimenetet
 * A `logs/` mappa mostantól naplózza a tesztek eredményét (ha engedélyezve van)
 
-### 🧪 Új tesztmodulok
+### 🥪 Új tesztmodulok
 
 * `test_logger.py`: naplózási funkciók ellenőrzése
 * `test_download_parser.py`: RSS parsing és torrent naplózás
@@ -63,7 +79,7 @@
 
 ## \[1.0.1] – 2025-04-30
 
-### 🐛 Bugfixek és pontosítások
+### 🚗 Bugfixek és pontosítások
 
 * A költségbecslő modul (estimate\_translation\_cost.py) most már valósághű tokenhasználat alapján számol becslést.
 * Az input tokenek figyelembe veszik a teljes rendszerprompt + batchen belüli összefűzött `user` szöveget.
@@ -98,11 +114,3 @@
 * Formázási adatok (szín, pozíció) megtartása későbbi bővítésként
 
 > Ezek a funkciók jelenleg vizsgálati fázisban vannak, és nem képeznek közvetlen fejlesztési elköteleződést.
-
-#### Következő megerősített fókusz (1.3.0)
-
-* Quality of Life (QoL) fejlesztések és kisebb refaktorok
-* Piszkos apró módosítások, felhasználói élmény és stabilitás javítására
-* Semmilyen jelentős új funkció nem várható, kizárólag karbantartási és kényelmi célok
-
----
