@@ -24,9 +24,6 @@ def is_logging_enabled(config_file='config/logger_config.ini'):
         print(f"⚠ Logger config olvasási hiba: {e} → logolás tiltva.")
         return False
 
-# Master kapcsoló (runtime based)
-LOG_ENABLED = is_logging_enabled()
-
 from pathlib import Path
 
 def find_project_root():
@@ -44,6 +41,8 @@ def find_project_root():
 
 PROJECT_ROOT = find_project_root()
 LOG_DIR = os.path.join(PROJECT_ROOT, "logs")
+CONFIG_PATH = os.path.join(PROJECT_ROOT, "config", "logger_config.ini")
+LOG_ENABLED = is_logging_enabled(CONFIG_PATH)
 os.makedirs(LOG_DIR, exist_ok=True)
 
 def _get_log_path(script_name: str, suffix: str) -> str:
