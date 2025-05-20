@@ -12,7 +12,7 @@ Ez a dokumentáció lépésről lépésre bemutatja, hogyan lehet beállítani �
 
 ---
 
-## 📦 Süzkséges Python csomagok
+## 📦 Szükséges Python csomagok
 
 A következő Python csomagokat manuálisan kell telepíteni `pip` segítségével:
 
@@ -66,6 +66,7 @@ cd Fordito
    openai\_config.ini: OpenAI beállítások – használt motor, fordítási mennyiség szabályozása, extra kontextus használata.
    postprocess\_config.ini: utómunka az ASS fájlban, például ha más szerzőt szeretnél megadni a kész feliratban.
    qbittorrent\_config.ini: qBittorrent kapcsolat beállításai – torrent filterek, megbízhatósági beállítások, specifikus torrentek szűrése.
+   logger\_config.ini: vezérli, hogy a rendszer ír-e naplót a logs/ mappába.
 
 3. Válassz futtatási módot:
    3/A. Futtasd a scripteket külön-külön, egymás után, ha manuálisan szeretnéd végrehajtani a lépéseket.
@@ -79,7 +80,7 @@ python master_translator.py
 
 ---
 
-## 🖼️ SUP felirat konvertálása (1.2.0 újdonság)
+## 🖼️ SUP bitmap felirat automatikus feldolgozása (1.2.0-tól)
 
 A rendszer 1.2.0-tól kezdődően **automatikusan felismeri a bitmap formátumú SUP feliratokat** a `02_extract_subtitles.py` futtatásakor, és ha talál ilyet, automatikusan OCR-rel átalakítja ASS formátumba.
 
@@ -106,7 +107,7 @@ python 02_extract_subtitles.py
 
 ---
 
-## 🧪 Tesztelés
+## 🥪 Tesztelés
 
 A projekt teljes tesztkészlete lefuttatható a következő paranccsal:
 
