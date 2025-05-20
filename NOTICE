@@ -1,0 +1,61 @@
+
+NOTICE FILE
+===========
+
+This project makes use of the following third-party software components:
+
+----------------------------
+PYTHON PACKAGES (via pip)
+----------------------------
+
+1. openai
+   License: MIT
+   https://pypi.org/project/openai/
+
+2. tiktoken
+   License: MIT
+   https://pypi.org/project/tiktoken/
+
+3. qbittorrent-api
+   License: MIT
+   https://pypi.org/project/qbittorrent-api/
+
+4. requests
+   License: Apache 2.0
+   https://pypi.org/project/requests/
+
+5. tqdm
+   License: MIT
+   https://pypi.org/project/tqdm/
+
+6. pytest
+   License: MIT
+   https://pypi.org/project/pytest/
+
+----------------------------
+EXTERNAL TOOLS (non-Python)
+----------------------------
+
+7. Subtitle Edit
+   License: GNU General Public License v3.0
+   https://github.com/SubtitleEdit/subtitleedit
+
+8. FFmpeg
+   License: GNU General Public License v2.0 or GNU Lesser General Public License
+   https://ffmpeg.org/legal.html
+
+9. Tesseract OCR
+   License: Apache License 2.0
+   https://github.com/tesseract-ocr/tesseract
+
+10. MKVToolNix (mkvmerge)
+    License: GNU General Public License v2.0
+    https://mkvtoolnix.download/
+
+----------------------------
+CREDIT
+----------------------------
+
+This NOTICE file is provided in accordance with the license requirements of the listed components.
+All product names, logos, and brands are property of their respective owners.
+

@@ -95,3 +95,18 @@ TARGET_TORRENT_MATCH: ha megadsz értékeket, ezeknek mind szerepelniük kell a 
 
 ---
 
+```ini
+[logger]
+log_enabled = true
+```
+Ez a fájl vezérli, hogy a rendszer naplózza-e a működését a logs/ mappába.
+
+Beállítások:
+log_enabled = true → a rendszer logfájlokat ír.
+
+log_enabled = false → a logolás ki van kapcsolva.
+
+Ha a fájl vagy a kulcs hiányzik, a logolás alapértelmezetten ki van kapcsolva.
+A fájl kizárólag INI formátumot támogat, és a logger.py modul olvassa be minden script futásakor.
+
+---
