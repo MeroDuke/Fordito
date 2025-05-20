@@ -16,7 +16,7 @@ Ez a dokumentáció a fejlesztők számára készült, hogy gyorsan átlássák 
 
 ---
 
-## 🧩 Futtatható scriptek (bin/)
+## 🧹 Futtatható scriptek (bin/)
 
 | Fájl                                          | Funkció                                                                                                          |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
@@ -46,17 +46,17 @@ Ez a dokumentáció a fejlesztők számára készült, hogy gyorsan átlássák 
 
 ## 🧱 Modulok (scripts/)
 
-| Modul                          | Leírás                                                     |
-| ------------------------------ | ---------------------------------------------------------- |
-| `color_utils.py`               | Karakter szinezés segédlet                                 |
-| `context_lookup.py`            | Extra kontextus keresése egy adott címhez                  |
-| `download_log.py`              | Letöltési események naplózása                              |
-| `episode_utils.py`             | Epizód-specifikus segédfüggvények                          |
-| `estimate_translation_cost.py` | Fordítás várható költségének becslése token alapon         |
-| `logger.py`                    | Naplózás vezérlése (ki/bekapcsolás)                        |
-| `qbittorrent_client.py`        | qBittorrent Web API kapcsolat és letöltésvezérlés          |
-| `sup_to_ass.py`                | SUP bitmap feliratok OCR alapú konvertálása ASS formátumba |
-| `__init__.py`                  | (üres) – a `scripts` mappa modulként importálhatóvá tétele |
+| Modul                          | Leírás                                                                          |
+| ------------------------------ | ------------------------------------------------------------------------------- |
+| `color_utils.py`               | Karakter szinezés segédlet                                                      |
+| `context_lookup.py`            | Extra kontextus keresése egy adott címhez                                       |
+| `download_log.py`              | Letöltési események naplózása                                                   |
+| `episode_utils.py`             | Epizód-specifikus segédfüggvények                                               |
+| `estimate_translation_cost.py` | Fordítás várható költségének becslése token alapon                              |
+| `logger.py`                    | Naplózás vezérlése `logger_config.ini` alapján (ki/bekapcsolás konfigurációból) |
+| `qbittorrent_client.py`        | qBittorrent Web API kapcsolat és letöltésvezérlés                               |
+| `sup_to_ass.py`                | SUP bitmap feliratok OCR alapú konvertálása ASS formátumba                      |
+| `__init__.py`                  | (üres) – a `scripts` mappa modulként importálhatóvá tétele                      |
 
 ---
 
@@ -70,20 +70,22 @@ Ez a dokumentáció a fejlesztők számára készült, hogy gyorsan átlássák 
 | `qbittorrent_config.ini` | 01                                 |
 | `cleanup_config.ini`     | 07                                 |
 | `postprocess_config.ini` | 03, 05                             |
+| `logger_config.ini`      | Minden script (logolás vezérlés)   |
 
 ---
 
-## 🔧 Egyéb megjegyzések
+## ⚖️ Egyéb megjegyzések
 
 * A legtöbb bin/script modulos formában készült, így külön-külön is futtatható.
 * A `master_translator.py` lineárisan végrehajtja az összes lépést.
 * A `02_extract_subtitles.py` script 1.2.0-tól automatikusan felismeri a bitmap (SUP) feliratokat, és Subtitle Edit CLI segítségével OCR-rel alakítja ASS formátumba.
-* A `master_test_automation.py`lineárisan lefuttatja az összes automata tesztet.
-* A `logs/` mappa tartalma alapértelmezetten nem jön létre, de hiba esetén automatikusan generálódik.
+* A `master_test_automation.py` lineárisan lefuttatja az összes automata tesztet.
+* A `logs/` mappa tartalma alapértelezetten nem jön létre, de hiba esetén automatikusan generálódik.
+* Az 1.3.0 verzótól kezdve a logolás konfigurációja külső `logger_config.ini` fájlból történik.
 
 ---
 
-## 🧪 Tesztfuttatás
+## 🥪 Tesztfuttatás
 
 A teljes projekt tesztelése a gyökérmappában található `master_test_automation.py` script segítségével történik:
 
@@ -97,7 +99,7 @@ Ez minden tests/ alatti modult lefuttat, és opcionálisan HTML riportot generá
 
 ## 📝 Záró megjegyzés
 
-Ez a technikai dokumentáció a Subtitle Translator projekt **1.2.0 verziójához** készült.
+Ez a technikai dokumentáció a Subtitle Translator projekt **1.3.0 verzójához** készült.
 A dokumentáció célja, hogy egy fejlesztő rövid idő alatt átlássa a rendszer felépítését, működését és a főbb összefüggéseket.
 
 További fejlesztések (pl. API integráció, bővített moduláris struktúra, automatizált tesztelés) esetén ajánlott a dokumentációt kiegészíteni, illetve részletesebb ábrákkal vagy folyamatleírásokkal bővíteni.
