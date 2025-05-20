@@ -6,7 +6,7 @@ logs/
 *.bak
 
 # Konfigurációs fájlok
-# config/credentials.ini
+ config/credentials.ini
 config/discord_config.ini
 
 # Python fájlok és virtuális környezetek
