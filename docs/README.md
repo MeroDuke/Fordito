@@ -1,5 +1,7 @@
 # 🎬 Subtitle Translator – AI-alapú feliratfordító rendszer
 
+> Verzió: 1.3.0 · Frissítve: 2025-05-20
+
 Ez a projekt egy **automatizált feliratfordító eszköz**, amely képes anime feliratokat angol vagy japán nyelvről **magyarra** fordítani mesterséges intelligencia segítségével. A rendszer `.ass` formátumú feliratokat dolgoz fel, és jellemzően anime torrentekkel együtt használható.
 
 ---
@@ -9,15 +11,16 @@ Ez a projekt egy **automatizált feliratfordító eszköz**, amely képes anime 
 * Automatikus .torrent fájl letöltése RSS alapján
 * Feliratfájlok kiválasztása és előfeldolgozása
 * Japán vagy angol nyelv automatikus felismerése
-* SUP bitmap feliratok automatikus felismerése és OCR alapú átalakítása ASS formátumba (Subtitle Edit CLI segítségével)
+* SUP bitmap feliratok automatikus felismerése és OCR alapú átalakítása ASS formátumba (Subtitle Edit CLI segítségével, ideiglenes fájlkezeléssel)
 * AI-alapú fordítás (OpenAI)
 * Beszélőalapú stíluskezelés és színezés
 * Költségbecslés és tokenlimit figyelembevétele
-* Szükség esetén extra kontextus használata az adott címhez
+* Sükség esetén extra kontextus használata az adott címhez
 * Magyar nyelvű .ass fájl mentése
 * Discord-integráció webhookon keresztül
 * Mentett torrentek ürítése
 * Lokális munkafájlok eltávolítása a data/ mappából
+* Konfigurálható logolás `logger_config.ini` fájlból (alapértelemezetten kikapcsolva)
 
 ---
 
@@ -66,11 +69,11 @@ Bármelyik módszert választod:
 
 * Ha a `logs/` vagy más mappa nem létezne, a rendszernek létre kell hoznia őket automatikusan
 * Ügyelj arra, hogy a `config/credentials.ini` fájl tartalmazza az érvényes API kulcsot
-* Ha hiba történik, a részleteket a `logs/` mappában találod meg. A logolás alapból ki van kapcsolva; a `scripts/logger.py` fájlban lehet ki- és bekapcsolni.
+* Ha hiba történik, a részleteket a `logs/` mappában találod meg. A logolás alapértelezetten ki van kapcsolva; ezt mostantól a `config/logger_config.ini` fájlban lehet vezérelni (`log_enabled = true`).
 
 ---
 
-## 🧪 Automatikus tesztelés
+## 🥪 Automatikus tesztelés
 
 A projekt teljes körű unit tesztlefedettséggel rendelkezik. A tesztek a `tests/` mappában találhatók, és a következőképpen futtathatók:
 
@@ -84,11 +87,11 @@ Ez a script:
 
 lefuttatja az összes pytest tesztet
 
-ha a logolás engedélyezve van (scripts/logger.py > LOG\_ENABLED = True), akkor:
+ha a logolás engedélyezve van (`logger_config.ini > log_enabled = true`), akkor:
 
 részletes HTML riportot generál a logs/ mappába
 
-a riport neve: YYYY-MM-DD\_HH-MM-SS\_pytest\_report.html
+a riport neve: `YYYY-MM-DD_HH-MM-SS_pytest_report.html`
 
 ## 📌 Állapot
 
