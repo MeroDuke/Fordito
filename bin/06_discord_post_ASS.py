@@ -2,8 +2,10 @@ import os
 import sys
 import json
 import re
+import unicodedata
 from configparser import ConfigParser
 import requests
+from collections import Counter
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
@@ -64,6 +66,14 @@ def find_subtitle_file(data_dir):
     log_tech(LOG_NAME, "Subtitle file not found in data directory.")
     sys.exit(1)
 
+def normalize(s):
+    return unicodedata.normalize("NFKC", s.lower().replace(":", "-").replace("_", " ").strip())
+
+def extract_keywords(text):
+    base = re.sub(r'\[.*?\]', '', text)
+    tokens = re.findall(r'\w+', base.lower())
+    return [t for t in tokens if len(t) > 2]
+
 def match_torrent(project_root, subtitle_filename):
     db_path = os.path.join(project_root, USERDATA_DIRNAME, TORRENT_DB_FILENAME)
     if not os.path.isfile(db_path):
@@ -78,46 +88,83 @@ def match_torrent(project_root, subtitle_filename):
             return None
 
     subtitle_lower = subtitle_filename.lower()
+    subtitle_base = subtitle_lower.replace('_hungarian_styled', '').replace('_styled', '')
+    subtitle_norm = normalize(subtitle_base)
 
-    # 1. Próbálunk hash prefix alapján egyezni (legelső prioritás)
+    hash_prefixes = {
+        v.get("hash", "").lower()[:8]: v.get("source")
+        for v in torrents.values()
+        if isinstance(v, dict) and v.get("hash")
+    }
+
     hash_match = re.search(r'\[([0-9A-Fa-f]{8})\]', subtitle_filename)
     if hash_match:
         hash_prefix = hash_match.group(1).lower()
-        for key, value in torrents.items():
-            if not isinstance(value, dict):
-                continue
-            full_hash = value.get("hash", "").lower()
-            if full_hash.startswith(hash_prefix):
-                log_tech(LOG_NAME, f"✅ Torrent match by hash prefix: {hash_prefix} → {value.get('source')}")
-                return value.get("source")
+        if hash_prefix in hash_prefixes:
+            url = hash_prefixes[hash_prefix]
+            log_tech(LOG_NAME, f"✅ Torrent match by validated hash prefix: {hash_prefix} → {url}")
+            return url
 
-    # 2. Próbáljuk title alapján
-    for key, value in torrents.items():
+    for value in torrents.values():
         if not isinstance(value, dict):
             continue
-        title = value.get("title", "").lower()
-        if title and title in subtitle_lower:
-            log_tech(LOG_NAME, f"Torrent match by title: {title}")
-            return value.get("source")
+        title = value.get("title", "")
+        title_norm = normalize(title)
+        if title_norm and (subtitle_norm in title_norm or title_norm in subtitle_norm):
+            url = value.get("source")
+            log_tech(LOG_NAME, f"✅ Torrent match by normalized title: {title} → {url}")
+            return url
 
-    # 3. Próbáljuk episode_id alapján
-    for key, value in torrents.items():
+    subtitle_keywords = extract_keywords(subtitle_base)
+    best_match = None
+    best_score = 0
+    episode_match_bonus = 5
+    subtitle_episode = re.search(r'-\s?(\d{2})\b', subtitle_base)
+
+    for value in torrents.values():
+        if not isinstance(value, dict):
+            continue
+        title = value.get("title", "")
+        title_keywords = extract_keywords(title)
+        score = sum((Counter(title_keywords) & Counter(subtitle_keywords)).values())
+
+        torrent_episode = re.search(r'-\s?(\d{2})\b', title)
+        ep_bonus = 0
+        if subtitle_episode and torrent_episode and subtitle_episode.group(1) == torrent_episode.group(1):
+            ep_bonus = episode_match_bonus
+            score += ep_bonus
+
+        if score > best_score:
+            best_score = score
+            best_match = value
+            best_ep_bonus = ep_bonus
+
+    if best_match and best_score >= 3:
+        url = best_match.get("source")
+        log_tech(
+            LOG_NAME,
+            f"📊 Torrent match by keyword+episode: {best_match.get('title')} → {url} "
+            f"(kulcsszópont: {best_score - best_ep_bonus}, epizódbónusz: {best_ep_bonus})"
+        )
+        return url
+
+    for value in torrents.values():
         if not isinstance(value, dict):
             continue
         episode_id = value.get("episode_id", "").lower()
         if episode_id and episode_id in subtitle_lower:
-            log_tech(LOG_NAME, f"Torrent match by episode_id: {episode_id}")
-            return value.get("source")
+            url = value.get("source")
+            log_tech(LOG_NAME, f"✅ Torrent match by episode_id: {episode_id} → {url}")
+            return url
 
-    # 4. Próbáljuk key alapján (legvégső fallback, ha minden más kudarcot vallott)
     for key, value in torrents.items():
         key_str = str(key).lower()
         if key_str and key_str in subtitle_lower:
-            log_tech(LOG_NAME, f"Torrent match by key (last resort): {key_str}")
-            return value.get("source")
+            url = value.get("source")
+            log_tech(LOG_NAME, f"⚠️ Torrent match by key fallback: {key_str} → {url}")
+            return url
 
-    # 5. Semmi sem talált
-    log_tech(LOG_NAME, "❌ Nem sikerült torrenthez párosítani a feliratot (hash + fallback sem talált).")
+    log_tech(LOG_NAME, "❌ Nem sikerült torrenthez párosítani a feliratot (minden egyezés sikertelen).")
     return None
 
 def main():
