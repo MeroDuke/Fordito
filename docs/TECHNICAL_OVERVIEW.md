@@ -25,7 +25,7 @@ Ez a dokumentáció a fejlesztők számára készült, hogy gyorsan átlássák 
 | `03_OpenAI_API_ONLY_4-Turbo_translate_ass.py` | Lefordítja az angol vagy japán feliratot magyarra (OpenAI)                                                       |
 | `04_update_character_gender_map.py`           | Beszélőnevek és nemek leképezése a felirat alapján                                                               |
 | `05_mkvtool_add_subtitle_to_mkv.py`           | Visszailleszti a lefordított feliratot az MKV fájlba                                                             |
-| `06_discord_post_ASS.py`                      | A lefordított feliratot Discord webhookon keresztül elküldi                                                      |
+| `06_discord_post_ASS.py`                      | Felirat kiküldése Discordra, a hozzá tartozó torrent automatikus párosításával |
 | `07_cleanup_data_and_torrents.py`             | Régi torrentek és felesleges fájlok törlése a data/ mappából                                                     |
 
 ---
