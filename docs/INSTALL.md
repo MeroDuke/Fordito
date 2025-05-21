@@ -39,10 +39,13 @@ A Python letölthető innen: [python.org/downloads](https://www.python.org/downl
 
 ## 📦 Szükséges Python csomagok
 
+> ⚠️ Fontos: A openai.ChatCompletion csak az OpenAI Python csomag 0.x verzióiban érhető el. A rendszer jelenleg a 0.28-as verziót használja. Ha újabb verzió van telepítve,
+> a rendszer hibát jelezhet.
+
 A következő Python csomagokat manuálisan kell telepíteni `pip` segítségével:
 
 ```bash
-pip install requests tqdm openai tiktoken qbittorrent-api pytest pytest-html
+pip install requests tqdm openai==0.28 tiktoken qbittorrent-api pytest pytest-html
 ```
 
 ---
@@ -79,23 +82,13 @@ Ha az MKVToolNix vagy a Subtitle Edit nem érhető el a parancssorból (`mkvmerg
 
 ---
 
-## 🔐 API kulcsok beállítása
+## 🔐 OpenAI API kulcs igénylése
 
 > ⚠️ **Fontos:** A rendszer működéséhez OpenAI fiók szükséges. Ez egy fizetős szolgáltatás!
 >
 > * Fiók létrehozása: [https://platform.openai.com/signup](https://platform.openai.com/signup)
 > * API kulcs létrehozása: [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
 > * Egyenleg feltöltése: [https://platform.openai.com/account/billing](https://platform.openai.com/account/billing)
-
-1. Hozd létre a `config/credentials.ini` fájlt (ha még nem létezik).
-2. Add meg az API kulcsokat a következő formátumban:
-
-```ini
-[OPENAI]
-api_key = sk-...
-```
-
-*Megjegyzés: csak az OpenAI használata kötelező.*
 
 ---
 
@@ -113,9 +106,12 @@ cd Fordito
 2. Ellenőrizd a `config/` mappa helyességét és állítsd be a konfigurációs fájlokat:
 
    * `cleanup_config.ini`: megadja, hogy milyen régi torrenteket szeretnél megtartani.
-   * `credentials.ini`: az OpenAI API-kulcs helye.
+   * `credentials_template.ini`: az OpenAI API-kulcs helye.
+   > Figyelem: Nevezd át credentials.ini -re
    * `discord_config.ini`: a Discord-integrációhoz szükséges webhook URL.
-   * `openai_config.ini`: OpenAI beállítások – használt motor, fordítási mennyiség szabályozása, extra kontextus használata. Figyelem: az „extra kontextus használata” opció bekapcsolása megnöveli az OpenAI API-költséget, mivel több szöveget küld a rendszer a modellnek fordítás előtt. Ez magasabb tokenhasználattal és így magasabb számlázással járhat. Érdemes csak akkor engedélyezni, ha valóban szükséges a pontosabb fordításhoz.
+   * `openai_config.ini`: OpenAI beállítások – használt motor, fordítási mennyiség szabályozása, extra kontextus használata. 
+   > Figyelem: az „extra kontextus használata” opció bekapcsolása megnöveli az OpenAI API-költséget, mivel több szöveget küld a rendszer a modellnek fordítás előtt.
+   > Ez magasabb tokenhasználattal és így magasabb számlázással járhat. Érdemes csak akkor engedélyezni, ha valóban szükséges a pontosabb fordításhoz.
    * `postprocess_config.ini`: utómunka az ASS fájlban, például ha más szerzőt szeretnél megadni a kész feliratban.
    * `qbittorrent_config.ini`: qBittorrent kapcsolat beállításai – torrent filterek, megbízhatósági beállítások, specifikus torrentek szűrése.
    * `logger_config.ini`: vezérli, hogy a rendszer ír-e naplót a `logs/` mappába.
