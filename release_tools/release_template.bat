@@ -5,8 +5,8 @@ REM Supports custom branch suffix (e.g. testing, preOCR, ci-ready)
 REM =========================================
 
 REM === CONFIGURATION ===
-set VERSION=1.3.0
-set BRANCH_SUFFIX=qol
+set VERSION=1.4.0
+set BRANCH_SUFFIX=user-setup
 
 REM === Checkout main branch and pull latest changes ===
 git checkout main
