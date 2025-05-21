@@ -1,5 +1,31 @@
 # 🗂️ Verziótörténet – Subtitle Translator
 
+## \[1.4.0] – 2025-05-21
+
+### 🛠️ Stabilitási és kompatibilitási kiadás
+
+Ez a verzió nem tartalmaz új funkciókat, kizárólag a projekt teljes körű, dokumentált és gépfüggetlen futtathatóságát biztosítja.
+
+### ♻️ Módosítások
+
+* Az `INSTALL.md` teljesen újrastrukturálva step-by-step módon
+* Verziók rögzítése (`openai==0.28`, Python 3.10.5 ajánlás)
+* Subtitle Edit és MKVToolNix PATH kezelése pontosítva
+* `credentials_template.ini` és más konfigurációs fájlok szerepe tisztázva
+* Új figyelmeztetések az OpenAI költségekre és fiókszükségletre
+
+### 🚗 Bugfixek
+
+* A `06_discord_post_ASS.py` korábban tévesen választott torrentet bizonyos esetekben (pl. több hasonló című epizód esetén).  
+  Javítva: mostantól pontozásos rendszer (kulcsszavak + epizód egyezés) alapján történik a párosítás, részletes technikai loggal.
+
+### 📄 Dokumentáció
+
+* `INSTALL.md` újraírása → VM-en is tesztelt változat
+* `README.md`, `CONFIG_FILES.md`, `TECHNICAL_OVERVIEW.md` ellenőrizve – nem igényeltek módosítást
+
+---
+
 ## \[1.3.0] – 2025-05-20
 
 ### ✅ Új funkciók
@@ -105,12 +131,8 @@
 
 ---
 
-### 🔭 Lehetséges jövőbeli irányok (vizsgálati fázisban)
+### 🧊 A projekt jövője
 
-* Videófájlokból automatikus feliratszöveg kinyerés (OCR)
-* Képkockánkénti szövegfelismerés + fordítás (OpenAI)
-* SRT/ASS generálás időbélyegekkel és opcionális pozícióadatokkal
-* A meglévő ASS pipeline újrafelhasználása a generált feliratra
-* Formázási adatok (szín, pozíció) megtartása későbbi bővítésként
+Az 1.4.0 verzióval a Subtitle Translator projekt karbantartási fázisba lép. További funkciófejlesztés nem várható, kizárólag hibajavítás történik, ha szükséges.
 
-> Ezek a funkciók jelenleg vizsgálati fázisban vannak, és nem képeznek közvetlen fejlesztési elköteleződést.
+A következő nagyobb kiadás várhatóan **2.0.0** lesz, amely teljesen újratervezett rendszerként, grafikus felhasználói felülettel (GUI) és új funkcionalitással tér vissza – ha és amikor a fejlesztő kedvet érez hozzá.

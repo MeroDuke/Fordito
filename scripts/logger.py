@@ -2,14 +2,35 @@ import os
 import datetime
 import configparser
 import sys
+from pathlib import Path
+
 sys.stdout.reconfigure(encoding='utf-8')
 
+# Projektgyökér meghatározása
+def find_project_root():
+    current = Path(__file__).resolve()
+    for _ in range(5):  # ne menjünk túl mélyre
+        # Git-alapú keresés (fejlesztőknek)
+        if (current / ".git").is_dir():
+            return current
+        # Fallback: ha .git nincs, keressük a tipikus mappákat (lazított feltétel)
+        required_dirs = ["bin", "scripts", "config"]
+        if all((current / d).is_dir() for d in required_dirs):
+            return current
+        current = current.parent
+    raise RuntimeError("❌ Nem található projektgyökér: se .git, se minimális mappastruktúra.")
+
+PROJECT_ROOT = find_project_root()
+CONFIG_PATH = os.path.join(PROJECT_ROOT, "config", "logger_config.ini")
+LOG_DIR = os.path.join(PROJECT_ROOT, "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+
 # Config olvasás
-def is_logging_enabled(config_file='config/logger_config.ini'):
+def is_logging_enabled(config_file=CONFIG_PATH):
     config = configparser.ConfigParser()
     try:
         if not os.path.exists(config_file):
-            print("⚠ Logger config fájl hiányzik, logolás tiltva.")
+            print(f"⚠ Logger config fájl nem található: {config_file} → logolás tiltva.")
             return False
         config.read(config_file, encoding='utf-8')
         value = config.get('logger', 'log_enabled', fallback='false').strip().lower()
@@ -26,18 +47,6 @@ def is_logging_enabled(config_file='config/logger_config.ini'):
 
 # Master kapcsoló (runtime based)
 LOG_ENABLED = is_logging_enabled()
-
-def find_project_root(marker=".git"):
-    current = os.path.abspath(os.path.dirname(__file__))
-    while current != os.path.dirname(current):
-        if os.path.isdir(os.path.join(current, marker)):
-            return current
-        current = os.path.dirname(current)
-    raise RuntimeError("❌ Nem található projektgyökér (nincs .git mappa)")
-
-PROJECT_ROOT = find_project_root()
-LOG_DIR = os.path.join(PROJECT_ROOT, "logs")
-os.makedirs(LOG_DIR, exist_ok=True)
 
 def _get_log_path(script_name: str, suffix: str) -> str:
     date_str = datetime.datetime.now().strftime('%Y-%m-%d')

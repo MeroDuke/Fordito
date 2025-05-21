@@ -11,12 +11,24 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 sys.path.insert(0, PROJECT_DIR)
 
+# 📌 Log név
+LOG_NAME = "01_download_torrent_parser_qbittorrent"
+
 # 📌 Elérési út hozzáadása a scripts mappához
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from episode_utils import extract_episode_id
 from download_log import is_episode_already_downloaded, add_episode_to_log
 from scripts.logger import log_user, log_tech, log_user_print
 from scripts.qbittorrent_client import create_client_from_config
+
+# 📌 Kötelező mappák automatikus létrehozása, ha hiányoznak
+REQUIRED_DIRS = ["data", "userdata", "logs"]
+for folder in REQUIRED_DIRS:
+    path = os.path.join(PROJECT_DIR, folder)
+    if not os.path.exists(path):
+        os.makedirs(path, exist_ok=True)
+        log_tech(LOG_NAME, "📁 Hiányzó mappa létrehozva: {folder}")
+        log_user(LOG_NAME, "📁 Hiányzó mappa létrehozva: {folder}")
 
 # 📌 Konfiguráció beolvasása a config.ini fájlból
 CONFIG_PATH = os.path.join(PROJECT_DIR, "config", "qbittorrent_config.ini")
@@ -40,9 +52,6 @@ SCRIPT_DIR = CURRENT_DIR
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
 USERDATA_DIR = os.path.join(PROJECT_DIR, "userdata")
 TORRENT_LOG_PATH = os.path.join(USERDATA_DIR, "downloaded_torrents.json")
-
-# 📌 Log név
-LOG_NAME = "01_download_torrent_parser_qbittorrent"
 
 # 📌 qBittorrent kliens inicializálása
 log_tech(LOG_NAME, "🔗 qBittorrent API kapcsolat inicializálása...")

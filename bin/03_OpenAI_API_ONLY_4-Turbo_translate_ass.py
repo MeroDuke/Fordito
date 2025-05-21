@@ -30,6 +30,11 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OPENAI_CONFIG_PATH = os.path.join(BASE_DIR, "config", "openai_config.ini")
 CREDENTIALS_PATH = os.path.join(BASE_DIR, "config", "credentials.ini")
 
+if not os.path.exists(CREDENTIALS_PATH):
+    log_user_print(LOG_NAME, "❌ Nincs meg a 'credentials.ini'! Kérlek, másold le a 'credentials_template.ini'-t, nevezd át, és töltsd ki.")
+    log_tech(LOG_NAME, "Hiányzik a config/credentials.ini fájl.")
+    sys.exit(1)
+
 config = configparser.ConfigParser()
 config.read(OPENAI_CONFIG_PATH)
 
