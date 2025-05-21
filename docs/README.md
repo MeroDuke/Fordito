@@ -17,7 +17,7 @@ Ez a projekt egy **automatizált feliratfordító eszköz**, amely képes anime 
 * Költségbecslés és tokenlimit figyelembevétele
 * Sükség esetén extra kontextus használata az adott címhez
 * Magyar nyelvű .ass fájl mentése
-* Discord-integráció webhookon keresztül
+* Discord-integráció webhookon keresztül (felirathoz automatikusan társított torrent linkkel)
 * Mentett torrentek ürítése
 * Lokális munkafájlok eltávolítása a data/ mappából
 * Konfigurálható logolás `logger_config.ini` fájlból (alapértelemezetten kikapcsolva)
