@@ -14,6 +14,11 @@ Ez a verzió nem tartalmaz új funkciókat, kizárólag a projekt teljes körű,
 * `credentials_template.ini` és más konfigurációs fájlok szerepe tisztázva
 * Új figyelmeztetések az OpenAI költségekre és fiókszükségletre
 
+### 🚗 Bugfixek
+
+* A `06_discord_post_ASS.py` korábban tévesen választott torrentet bizonyos esetekben (pl. több hasonló című epizód esetén).  
+  Javítva: mostantól pontozásos rendszer (kulcsszavak + epizód egyezés) alapján történik a párosítás, részletes technikai loggal.
+
 ### 📄 Dokumentáció
 
 * `INSTALL.md` újraírása → VM-en is tesztelt változat
