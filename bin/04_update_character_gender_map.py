@@ -3,6 +3,7 @@ import os
 import json
 import hashlib
 import configparser
+import subprocess
 
 # 📌 Mappák és fájlnevek
 
@@ -142,3 +143,13 @@ with open(output_ass, "w", encoding="utf-8") as f:
     f.writelines(updated_lines)
 log_user_print(LOG_NAME, f"✅ ASS fájl frissítve: {output_ass}")
 log_tech(LOG_NAME, f"ASS fájl mentve: {output_ass}")
+
+# 📌 Sign overlay sorok fixálása külön scriptből
+fix_script_path = os.path.join(PROJECT_DIR, "scripts", "fix_overlay_sign_lines.py")
+if os.path.exists(fix_script_path):
+    subprocess.run([sys.executable, fix_script_path], check=True)
+    log_user_print(LOG_NAME, "✅ Sign overlay fixáló script lefutott.")
+    log_tech(LOG_NAME, f"Sign fixáló script meghívva: {fix_script_path}")
+else:
+    log_user_print(LOG_NAME, "⚠️ Sign overlay fix script nem található. Kihagyva.")
+    log_tech(LOG_NAME, f"Sign fix script hiányzik: {fix_script_path}")
