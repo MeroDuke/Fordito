@@ -1,6 +1,6 @@
 # 🎬 Subtitle Translator – AI-alapú feliratfordító rendszer
 
-> Verzió: 1.3.0 · Frissítve: 2025-05-20
+> Verzió: 1.4.1 · Frissítve: 2025-07-17
 
 Ez a projekt egy **automatizált feliratfordító eszköz**, amely képes anime feliratokat angol vagy japán nyelvről **magyarra** fordítani mesterséges intelligencia segítségével. A rendszer `.ass` formátumú feliratokat dolgoz fel, és jellemzően anime torrentekkel együtt használható.
 
@@ -14,6 +14,7 @@ Ez a projekt egy **automatizált feliratfordító eszköz**, amely képes anime 
 * SUP bitmap feliratok automatikus felismerése és OCR alapú átalakítása ASS formátumba (Subtitle Edit CLI segítségével, ideiglenes fájlkezeléssel)
 * AI-alapú fordítás (OpenAI)
 * Beszélőalapú stíluskezelés és színezés
+* Nem dialógus overlay (`sign_`) sorok pozíció- és formázáshelyreállítása
 * Költségbecslés és tokenlimit figyelembevétele
 * Sükség esetén extra kontextus használata az adott címhez
 * Magyar nyelvű .ass fájl mentése
