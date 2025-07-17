@@ -148,8 +148,20 @@ log_tech(LOG_NAME, f"ASS fájl mentve: {output_ass}")
 fix_script_path = os.path.join(PROJECT_DIR, "scripts", "fix_overlay_sign_lines.py")
 if os.path.exists(fix_script_path):
     subprocess.run([sys.executable, fix_script_path], check=True)
-    log_user_print(LOG_NAME, "✅ Sign overlay fixáló script lefutott.")
+    log_tech(LOG_NAME, "Sign overlay fixáló script lefutott.")
     log_tech(LOG_NAME, f"Sign fixáló script meghívva: {fix_script_path}")
+
+    # 📌 Átnevezés: *_styled_fixed.ass -> *_styled.ass (felülírással)
+    fixed_file = output_ass.replace(".ass", "_fixed.ass")
+    if os.path.exists(fixed_file):
+        try:
+            os.remove(output_ass)
+            os.rename(fixed_file, output_ass)
+            log_tech(LOG_NAME, f"Átnevezés: {fixed_file} -> {output_ass}")
+            log_tech(LOG_NAME, f"Styled fájl felülírva fixált verzióval.")
+        except Exception as e:
+            log_tech(LOG_NAME, f"Átnevezés sikertelen: {e}")
+            log_tech(LOG_NAME, f"Hiba átnevezéskor: {e}")
 else:
     log_user_print(LOG_NAME, "⚠️ Sign overlay fix script nem található. Kihagyva.")
     log_tech(LOG_NAME, f"Sign fix script hiányzik: {fix_script_path}")
