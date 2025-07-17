@@ -1,5 +1,21 @@
 # 🗂️ Verziótörténet – Subtitle Translator
 
+## \[1.4.1] – 2025-07-17
+
+### 🛠️ Hotfix kiadás
+
+Ez a kisebb frissítés kizárólag hibajavításokat tartalmaz, új funkciók bevezetése nélkül.
+
+### 🚗 Bugfixek
+
+* Az `03_OpenAI_API_ONLY_4-Turbo_translate_ass.py` script által lefordított `sign_` típusú overlay sorok pozíciója és formázása mostantól automatikusan visszaáll az eredeti angol fájl alapján.
+* A `04_update_character_gender_map.py` script nem írja újra feleslegesen az ASS fájlt, ha nem történt érdemi változás.
+
+### 📄 Dokumentáció
+
+* Verziófrissítés: `README.md`, `TECHNICAL_OVERVIEW.md`, `VERSION.md`
+* Nincs módosítás szükség a `INSTALL.md` vagy `CONFIG_FILES.md` fájlban
+
 ## \[1.4.0] – 2025-05-21
 
 ### 🛠️ Stabilitási és kompatibilitási kiadás
