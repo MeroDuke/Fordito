@@ -53,6 +53,7 @@ Ez a dokumentáció a fejlesztők számára készült, hogy gyorsan átlássák 
 | `download_log.py`              | Letöltési események naplózása                                                   |
 | `episode_utils.py`             | Epizód-specifikus segédfüggvények                                               |
 | `estimate_translation_cost.py` | Fordítás várható költségének becslése token alapon                              |
+| `fix_overlay_sign_lines.py`    | Overlay (`sign_`) típusú sorok pozíció- és formázáshelyreállítása               |
 | `logger.py`                    | Naplózás vezérlése `logger_config.ini` alapján (ki/bekapcsolás konfigurációból) |
 | `qbittorrent_client.py`        | qBittorrent Web API kapcsolat és letöltésvezérlés                               |
 | `sup_to_ass.py`                | SUP bitmap feliratok OCR alapú konvertálása ASS formátumba                      |
@@ -99,7 +100,7 @@ Ez minden tests/ alatti modult lefuttat, és opcionálisan HTML riportot generá
 
 ## 📝 Záró megjegyzés
 
-Ez a technikai dokumentáció a Subtitle Translator projekt **1.3.0 verzójához** készült.
+Ez a technikai dokumentáció a Subtitle Translator projekt **1.4.1 verzójához** készült.
 A dokumentáció célja, hogy egy fejlesztő rövid idő alatt átlássa a rendszer felépítését, működését és a főbb összefüggéseket.
 
 További fejlesztések (pl. API integráció, bővített moduláris struktúra, automatizált tesztelés) esetén ajánlott a dokumentációt kiegészíteni, illetve részletesebb ábrákkal vagy folyamatleírásokkal bővíteni.

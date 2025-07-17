@@ -3,6 +3,7 @@ import os
 import json
 import hashlib
 import configparser
+import subprocess
 
 # 📌 Mappák és fájlnevek
 
@@ -104,7 +105,15 @@ if style_default and format_line:
     color_idx = format_fields.index("outlinecolour")
     name_idx = 0
     fontname_idx = format_fields.index("fontname")
-    for character, color in color_map.items():
+    
+    with open(SPEAKER_FILE, "r", encoding="utf-8") as f:
+        used_speakers = {line.strip() for line in f if line.strip()}
+
+    for character in used_speakers:
+        color = color_map.get(character)
+        if not color:
+            continue  # elővigyázatosságból, bár elvileg mindig van szín
+
         new_parts = parts.copy()
         new_parts[name_idx] = f"Char_{character}"
         new_parts[color_idx] = color
@@ -142,3 +151,25 @@ with open(output_ass, "w", encoding="utf-8") as f:
     f.writelines(updated_lines)
 log_user_print(LOG_NAME, f"✅ ASS fájl frissítve: {output_ass}")
 log_tech(LOG_NAME, f"ASS fájl mentve: {output_ass}")
+
+# 📌 Sign overlay sorok fixálása külön scriptből
+fix_script_path = os.path.join(PROJECT_DIR, "scripts", "fix_overlay_sign_lines.py")
+if os.path.exists(fix_script_path):
+    subprocess.run([sys.executable, fix_script_path], check=True)
+    log_tech(LOG_NAME, "Sign overlay fixáló script lefutott.")
+    log_tech(LOG_NAME, f"Sign fixáló script meghívva: {fix_script_path}")
+
+    # 📌 Átnevezés: *_styled_fixed.ass -> *_styled.ass (felülírással)
+    fixed_file = output_ass.replace(".ass", "_fixed.ass")
+    if os.path.exists(fixed_file):
+        try:
+            os.remove(output_ass)
+            os.rename(fixed_file, output_ass)
+            log_tech(LOG_NAME, f"Átnevezés: {fixed_file} -> {output_ass}")
+            log_tech(LOG_NAME, f"Styled fájl felülírva fixált verzióval.")
+        except Exception as e:
+            log_tech(LOG_NAME, f"Átnevezés sikertelen: {e}")
+            log_tech(LOG_NAME, f"Hiba átnevezéskor: {e}")
+else:
+    log_user_print(LOG_NAME, "⚠️ Sign overlay fix script nem található. Kihagyva.")
+    log_tech(LOG_NAME, f"Sign fix script hiányzik: {fix_script_path}")
