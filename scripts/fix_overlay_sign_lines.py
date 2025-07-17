@@ -98,5 +98,3 @@ for hu_line in hungarian_lines:
 # 📌 Mentés
 with open(output_file, "w", encoding="utf-8") as f:
     f.writelines(output_lines)
-
-print(f"✅ Fix kész: {output_file.name}")
