@@ -105,7 +105,15 @@ if style_default and format_line:
     color_idx = format_fields.index("outlinecolour")
     name_idx = 0
     fontname_idx = format_fields.index("fontname")
-    for character, color in color_map.items():
+    
+    with open(SPEAKER_FILE, "r", encoding="utf-8") as f:
+        used_speakers = {line.strip() for line in f if line.strip()}
+
+    for character in used_speakers:
+        color = color_map.get(character)
+        if not color:
+            continue  # elővigyázatosságból, bár elvileg mindig van szín
+
         new_parts = parts.copy()
         new_parts[name_idx] = f"Char_{character}"
         new_parts[color_idx] = color
