@@ -4,11 +4,14 @@ import os
 import time
 import configparser
 import json
+import re
 from tqdm import tqdm
 
+# 📌 Projektmappa logoláshoz
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
 
+# 📌 Log modul
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 sys.path.insert(0, PROJECT_DIR)
@@ -23,6 +26,7 @@ from scripts.estimate_translation_cost import (
 
 LOG_NAME = "03_translate_subtitles"
 
+# 📌 Konfigurációs fájlok beolvasása
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OPENAI_CONFIG_PATH = os.path.join(BASE_DIR, "config", "openai_config.ini")
 CREDENTIALS_PATH = os.path.join(BASE_DIR, "config", "credentials.ini")
@@ -38,6 +42,7 @@ config.read(OPENAI_CONFIG_PATH)
 secrets = configparser.ConfigParser()
 secrets.read(CREDENTIALS_PATH)
 
+# 📌 OpenAI API beállítások
 OPENAI_API_KEY = secrets.get("OPENAI", "API_KEY", fallback=None)
 MODEL_ENG = config.get("OPENAI", "MODEL_ENG", fallback="gpt-4-turbo")
 MODEL_JPN = config.get("OPENAI", "MODEL_JPN", fallback="gpt-4o")
@@ -50,8 +55,10 @@ if not OPENAI_API_KEY:
     log_tech(LOG_NAME, "OpenAI API kulcs hiányzik a konfigurációból.")
     raise ValueError("❌ Nincs megadva OpenAI API kulcs a credentials.ini konfigurációban!")
 
+# 📌 Projektmappa és 'data' mappa meghatározása
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
 
+# 📌 Kontextus betöltése, ha van és engedélyezett
 CONTEXT_PATH = os.path.join(PROJECT_DIR, "userdata", "context_preview.json")
 CONTEXT_DATA = None
 if USE_CONTEXT:
@@ -98,6 +105,7 @@ def find_ass_file(directory):
                 english_file = os.path.join(directory, file)
     return japanese_file or english_file
 
+# 📌 Keresünk fordítandó fájlt
 INPUT_FILE = find_ass_file(DATA_DIR)
 
 if not INPUT_FILE:
@@ -105,6 +113,7 @@ if not INPUT_FILE:
     log_tech(LOG_NAME, "Hiányzik .ass fájl a data mappából.")
     exit(1)
 
+# 📌 Modell kiválasztása fájlnév alapján
 if "_english" in INPUT_FILE:
     MODEL = MODEL_ENG
 elif "_japanese" in INPUT_FILE:
@@ -114,6 +123,7 @@ else:
     log_tech(LOG_NAME, f"Ismeretlen fájlnév: {INPUT_FILE}")
     exit(1)
 
+# 📌 Költségbecslés a fájl alapján (valósághű modell szerint)
 ass_lines = extract_lines_from_ass(INPUT_FILE)
 translatables = extract_translatables(ass_lines)
 input_tokens, output_tokens = estimate_token_count_precise(translatables, MODEL, BATCH_SIZE)
@@ -121,6 +131,7 @@ cost = calculate_cost(input_tokens, output_tokens, MODEL)
 log_user_print(LOG_NAME, f"💡 Becsült fordítási költség: {cost:.2f} USD ({input_tokens} input token, {output_tokens} output token, modell: {MODEL})")
 log_cost_estimate(MODEL, input_tokens, output_tokens, cost, accepted=True)
 
+# 📌 Kimeneti fájl neve
 OUTPUT_FILE = INPUT_FILE.replace("_english", "_hungarian").replace("_japanese", "_hungarian")
 
 log_user_print(LOG_NAME, f"✅ Talált feliratfájl: {INPUT_FILE}")
@@ -144,6 +155,7 @@ def translate_with_openai(text_list):
                 {"role": "user", "content": delimiter.join(text_list)}
             ]
         )
+        # 🔢 Valós tokenhasználat logolása
         if hasattr(response, "usage"):
             log_tech(LOG_NAME, f"[USAGE] prompt: {response.usage['prompt_tokens']}, completion: {response.usage['completion_tokens']}, total: {response.usage['total_tokens']}")
 
@@ -172,29 +184,59 @@ for line in lines:
 
 translated_lines = []
 batch = []
-original_prefixes = []
+original_prefixes = []  # ezt kellett hozzáadni!
 dialogue_count = sum(1 for line in lines if line.strip().lower().startswith("dialogue:"))
 
 with tqdm(total=dialogue_count, desc="🔄 Fordítás folyamatban", unit="sor") as pbar:
     for line in lines:
-        if line.strip().lower().startswith("dialogue:"):
-            if "\p" in line or (" m " in line and "\p" not in line and "\\N" not in line):
-                translated_lines.append(line)
-                pbar.update(1)
-                continue
-
-            last_comma_idx = line.rfind(",,")
-            if last_comma_idx != -1:
-                text_to_translate = line[last_comma_idx + 2:].strip()
-                prefix = line[:last_comma_idx + 2]
-
-                batch.append(text_to_translate)
-                original_prefixes.append(prefix)
-            else:
-                translated_lines.append(line)
-                pbar.update(1)
-        else:
+        if not line.strip().lower().startswith("dialogue:"):
             translated_lines.append(line)
+            continue
+
+        # 1) Vedd ki az első {…} override blokkot, ha van
+        parts0 = line.rstrip("\n").split(",", 9)
+        text_field = parts0[9]
+        m = re.match(r"^(\{[^}]*\})", text_field)
+        override = m.group(1) if m else ""
+        remainder = text_field[len(override):]
+
+        # 2) Ha ez valódi shape‐rajzoló tag (\p<szám>), ugord át
+        if re.search(r"\\p\\d", override):
+            translated_lines.append(line)
+            pbar.update(1)
+            continue
+
+        # 3) Készítsd el a prefixet, amiben benne van már az override is
+        prefix = ",".join(parts0[:9]) + "," + override
+
+        # 4) A maradék szöveget küldd a fordítóhoz
+        if "\\N" in remainder:
+            chunks = [c.strip() for c in remainder.split("\\N")]
+            # fordítjuk az egymás utánival
+            translations = translate_with_openai(chunks)
+            # újrasortörjük \N-nel
+            new_text = "\\N".join(translations)
+            # visszarakjuk a prefix + override blokk elé
+            translated_lines.append(f"{prefix}{new_text}\n")
+            pbar.update(1)
+            continue
+
+        # nincs sortörés, batch-be küldjük
+        text_to_translate = remainder.strip()
+        batch.append(text_to_translate)
+        original_prefixes.append(prefix)
+
+        # 5) Ha elértük a BATCH_SIZE-t, flush-oljuk
+        if len(batch) >= BATCH_SIZE:
+            translated_batch = translate_with_openai(batch)
+            for j in range(min(len(original_prefixes), len(translated_batch))):
+                translated_lines.append(f"{original_prefixes[j]}{translated_batch[j]}\n")
+                pbar.update(1)
+            batch = []
+            original_prefixes = []
+            time.sleep(1)
+
+    # Fájl végén a maradék batch-t is flush-oljuk
     if batch:
         translated_batch = translate_with_openai(batch)
         for j in range(min(len(original_prefixes), len(translated_batch))):
