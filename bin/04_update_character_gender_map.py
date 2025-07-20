@@ -131,7 +131,9 @@ for new_style in new_styles:
         style_insert_idx += 1
         log_tech(LOG_NAME, f"Style beszúrva: {style_name}")
 
+non_dialogue_lines = []
 updated_lines = []
+
 for line in lines:
     if line.strip().lower().startswith("dialogue:"):
         parts = line.split(",", 10)
@@ -147,9 +149,14 @@ for line in lines:
                 updated_lines.append(line)
         else:
             updated_lines.append(line)
+    else:
+        non_dialogue_lines.append(line)
 
+# 📌 Mentés: először a fejléc és nem-Dialogue sorok, majd a módosított párbeszédek
 with open(output_ass, "w", encoding="utf-8") as f:
+    f.writelines(non_dialogue_lines)
     f.writelines(updated_lines)
+
 log_user_print(LOG_NAME, f"✅ ASS fájl frissítve: {output_ass}")
 log_tech(LOG_NAME, f"ASS fájl mentve: {output_ass}")
 
