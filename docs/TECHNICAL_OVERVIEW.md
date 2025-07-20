@@ -53,7 +53,6 @@ Ez a dokumentáció a fejlesztők számára készült, hogy gyorsan átlássák 
 | `download_log.py`              | Letöltési események naplózása                                                   |
 | `episode_utils.py`             | Epizód-specifikus segédfüggvények                                               |
 | `estimate_translation_cost.py` | Fordítás várható költségének becslése token alapon                              |
-| `fix_overlay_sign_lines.py`    | Overlay (`sign_`) típusú sorok pozíció- és formázáshelyreállítása               |
 | `logger.py`                    | Naplózás vezérlése `logger_config.ini` alapján (ki/bekapcsolás konfigurációból) |
 | `qbittorrent_client.py`        | qBittorrent Web API kapcsolat és letöltésvezérlés                               |
 | `sup_to_ass.py`                | SUP bitmap feliratok OCR alapú konvertálása ASS formátumba                      |
