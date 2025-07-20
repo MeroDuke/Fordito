@@ -60,7 +60,9 @@ for hu_line in hungarian_lines:
                     style, override, en_text = sign_map[key][index]
                     match_counters[key] += 1
 
-                    parts[3] = style
+                    if parts[4].strip():
+                        parts[3] = style
+
                     hu_text = parts[9].strip()
 
                     if "\\N" in en_text:

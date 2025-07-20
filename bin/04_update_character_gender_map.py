@@ -137,15 +137,16 @@ for line in lines:
         parts = line.split(",", 10)
         if len(parts) >= 4:
             name = parts[4].strip()
-            style_name = f"Char_{name}"
-            parts[3] = style_name
-            updated_line = ",".join(parts)
-            updated_lines.append(updated_line)
-            log_tech(LOG_NAME, f"Stílus frissítve: {name} -> {style_name}")
+            if name:  # csak akkor írjuk át a stílust, ha van beszélőnév
+                style_name = f"Char_{name}"
+                parts[3] = style_name
+                updated_line = ",".join(parts)
+                updated_lines.append(updated_line)
+                log_tech(LOG_NAME, f"Stílus frissítve: {name} -> {style_name}")
+            else:
+                updated_lines.append(line)
         else:
             updated_lines.append(line)
-    else:
-        updated_lines.append(line)
 
 with open(output_ass, "w", encoding="utf-8") as f:
     f.writelines(updated_lines)
