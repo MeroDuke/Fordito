@@ -4,6 +4,7 @@ import os
 import time
 import configparser
 import json
+import re
 from tqdm import tqdm
 
 # 📌 Projektmappa logoláshoz
@@ -183,38 +184,59 @@ for line in lines:
 
 translated_lines = []
 batch = []
-original_prefixes = []
+original_prefixes = []  # ezt kellett hozzáadni!
 dialogue_count = sum(1 for line in lines if line.strip().lower().startswith("dialogue:"))
 
-from tqdm import tqdm
 with tqdm(total=dialogue_count, desc="🔄 Fordítás folyamatban", unit="sor") as pbar:
     for line in lines:
-        if line.strip().lower().startswith("dialogue:"):
-            parts = line.split(",", 10)
-            if len(parts) >= 2:
-                name = parts[4].strip()
-
-            last_comma_idx = line.rfind(",,")
-            if last_comma_idx != -1:
-                text_to_translate = line[last_comma_idx + 2:].strip()
-                prefix = line[:last_comma_idx + 2]
-
-                batch.append(text_to_translate)
-                original_prefixes.append(prefix)
-
-                if len(batch) >= BATCH_SIZE:
-                    translated_batch = translate_with_openai(batch)
-                    for j in range(min(len(original_prefixes), len(translated_batch))):
-                        translated_lines.append(f"{original_prefixes[j]}{translated_batch[j]}\n")
-                        pbar.update(1)
-                    batch = []
-                    original_prefixes = []
-                    time.sleep(1)
-            else:
-                translated_lines.append(line)
-                pbar.update(1)
-        else:
+        if not line.strip().lower().startswith("dialogue:"):
             translated_lines.append(line)
+            continue
+
+        # 1) Vedd ki az első {…} override blokkot, ha van
+        parts0 = line.rstrip("\n").split(",", 9)
+        text_field = parts0[9]
+        m = re.match(r"^(\{[^}]*\})", text_field)
+        override = m.group(1) if m else ""
+        remainder = text_field[len(override):]
+
+        # 2) Ha ez valódi shape‐rajzoló tag (\p<szám>), ugord át
+        if re.search(r"\\p\\d", override):
+            translated_lines.append(line)
+            pbar.update(1)
+            continue
+
+        # 3) Készítsd el a prefixet, amiben benne van már az override is
+        prefix = ",".join(parts0[:9]) + "," + override
+
+        # 4) A maradék szöveget küldd a fordítóhoz
+        if "\\N" in remainder:
+            chunks = [c.strip() for c in remainder.split("\\N")]
+            # fordítjuk az egymás utánival
+            translations = translate_with_openai(chunks)
+            # újrasortörjük \N-nel
+            new_text = "\\N".join(translations)
+            # visszarakjuk a prefix + override blokk elé
+            translated_lines.append(f"{prefix}{new_text}\n")
+            pbar.update(1)
+            continue
+
+        # nincs sortörés, batch-be küldjük
+        text_to_translate = remainder.strip()
+        batch.append(text_to_translate)
+        original_prefixes.append(prefix)
+
+        # 5) Ha elértük a BATCH_SIZE-t, flush-oljuk
+        if len(batch) >= BATCH_SIZE:
+            translated_batch = translate_with_openai(batch)
+            for j in range(min(len(original_prefixes), len(translated_batch))):
+                translated_lines.append(f"{original_prefixes[j]}{translated_batch[j]}\n")
+                pbar.update(1)
+            batch = []
+            original_prefixes = []
+            time.sleep(1)
+
+    # Fájl végén a maradék batch-t is flush-oljuk
     if batch:
         translated_batch = translate_with_openai(batch)
         for j in range(min(len(original_prefixes), len(translated_batch))):

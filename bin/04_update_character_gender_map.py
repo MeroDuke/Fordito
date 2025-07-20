@@ -131,45 +131,31 @@ for new_style in new_styles:
         style_insert_idx += 1
         log_tech(LOG_NAME, f"Style beszúrva: {style_name}")
 
+non_dialogue_lines = []
 updated_lines = []
+
 for line in lines:
     if line.strip().lower().startswith("dialogue:"):
         parts = line.split(",", 10)
         if len(parts) >= 4:
             name = parts[4].strip()
-            style_name = f"Char_{name}"
-            parts[3] = style_name
-            updated_line = ",".join(parts)
-            updated_lines.append(updated_line)
-            log_tech(LOG_NAME, f"Stílus frissítve: {name} -> {style_name}")
+            if name:  # csak akkor írjuk át a stílust, ha van beszélőnév
+                style_name = f"Char_{name}"
+                parts[3] = style_name
+                updated_line = ",".join(parts)
+                updated_lines.append(updated_line)
+                log_tech(LOG_NAME, f"Stílus frissítve: {name} -> {style_name}")
+            else:
+                updated_lines.append(line)
         else:
             updated_lines.append(line)
     else:
-        updated_lines.append(line)
+        non_dialogue_lines.append(line)
 
+# 📌 Mentés: először a fejléc és nem-Dialogue sorok, majd a módosított párbeszédek
 with open(output_ass, "w", encoding="utf-8") as f:
+    f.writelines(non_dialogue_lines)
     f.writelines(updated_lines)
+
 log_user_print(LOG_NAME, f"✅ ASS fájl frissítve: {output_ass}")
 log_tech(LOG_NAME, f"ASS fájl mentve: {output_ass}")
-
-# 📌 Sign overlay sorok fixálása külön scriptből
-fix_script_path = os.path.join(PROJECT_DIR, "scripts", "fix_overlay_sign_lines.py")
-if os.path.exists(fix_script_path):
-    subprocess.run([sys.executable, fix_script_path], check=True)
-    log_tech(LOG_NAME, "Sign overlay fixáló script lefutott.")
-    log_tech(LOG_NAME, f"Sign fixáló script meghívva: {fix_script_path}")
-
-    # 📌 Átnevezés: *_styled_fixed.ass -> *_styled.ass (felülírással)
-    fixed_file = output_ass.replace(".ass", "_fixed.ass")
-    if os.path.exists(fixed_file):
-        try:
-            os.remove(output_ass)
-            os.rename(fixed_file, output_ass)
-            log_tech(LOG_NAME, f"Átnevezés: {fixed_file} -> {output_ass}")
-            log_tech(LOG_NAME, f"Styled fájl felülírva fixált verzióval.")
-        except Exception as e:
-            log_tech(LOG_NAME, f"Átnevezés sikertelen: {e}")
-            log_tech(LOG_NAME, f"Hiba átnevezéskor: {e}")
-else:
-    log_user_print(LOG_NAME, "⚠️ Sign overlay fix script nem található. Kihagyva.")
-    log_tech(LOG_NAME, f"Sign fix script hiányzik: {fix_script_path}")
