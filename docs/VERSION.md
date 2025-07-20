@@ -1,5 +1,22 @@
 # 🗂️ Verziótörténet – Subtitle Translator
 
+## \[1.4.2] – 2025-07-20
+
+### 🆕 Újdonságok
+
+* A `03_translate_ass.py` mostantól visszailleszti az eredeti `{...}` formázásokat minden dialógussor elejére.
+* A `\N` sortörések támogatása: az AI külön-külön fordítja le a sortöréssel tagolt részeket, a tag megmarad.
+
+### 🧹 Tisztítás és egyszerűsítés
+
+* A `fix_overlay_sign_lines.py` script feleslegessé vált, törlésre került.
+* A `04_update_character_gender_map.py` scriptből eltávolítottuk a külső formázásfixáló hívását.
+
+### 📄 Dokumentáció
+
+* Verziószám frissítve: `TECHNICAL_OVERVIEW.md`
+* Nincs módosításra szükség a `README.md`,`INSTALL.md` és `CONFIG_FILES.md` fájlban.
+
 ## \[1.4.1] – 2025-07-17
 
 ### 🛠️ Hotfix kiadás
@@ -14,7 +31,7 @@ Ez a kisebb frissítés kizárólag hibajavításokat tartalmaz, új funkciók b
 ### 📄 Dokumentáció
 
 * Verziófrissítés: `README.md`, `TECHNICAL_OVERVIEW.md`, `VERSION.md`
-* Nincs módosítás szükség a `INSTALL.md` vagy `CONFIG_FILES.md` fájlban
+* Nincs módosításra szükség a `INSTALL.md` vagy `CONFIG_FILES.md` fájlban
 
 ## \[1.4.0] – 2025-05-21
 
