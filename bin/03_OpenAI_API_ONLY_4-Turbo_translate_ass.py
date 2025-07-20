@@ -6,11 +6,9 @@ import configparser
 import json
 from tqdm import tqdm
 
-# 📌 Projektmappa logoláshoz
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
 
-# 📌 Log modul
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 sys.path.insert(0, PROJECT_DIR)
@@ -25,7 +23,6 @@ from scripts.estimate_translation_cost import (
 
 LOG_NAME = "03_translate_subtitles"
 
-# 📌 Konfigurációs fájlok beolvasása
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OPENAI_CONFIG_PATH = os.path.join(BASE_DIR, "config", "openai_config.ini")
 CREDENTIALS_PATH = os.path.join(BASE_DIR, "config", "credentials.ini")
@@ -41,7 +38,6 @@ config.read(OPENAI_CONFIG_PATH)
 secrets = configparser.ConfigParser()
 secrets.read(CREDENTIALS_PATH)
 
-# 📌 OpenAI API beállítások
 OPENAI_API_KEY = secrets.get("OPENAI", "API_KEY", fallback=None)
 MODEL_ENG = config.get("OPENAI", "MODEL_ENG", fallback="gpt-4-turbo")
 MODEL_JPN = config.get("OPENAI", "MODEL_JPN", fallback="gpt-4o")
@@ -54,10 +50,8 @@ if not OPENAI_API_KEY:
     log_tech(LOG_NAME, "OpenAI API kulcs hiányzik a konfigurációból.")
     raise ValueError("❌ Nincs megadva OpenAI API kulcs a credentials.ini konfigurációban!")
 
-# 📌 Projektmappa és 'data' mappa meghatározása
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
 
-# 📌 Kontextus betöltése, ha van és engedélyezett
 CONTEXT_PATH = os.path.join(PROJECT_DIR, "userdata", "context_preview.json")
 CONTEXT_DATA = None
 if USE_CONTEXT:
@@ -104,7 +98,6 @@ def find_ass_file(directory):
                 english_file = os.path.join(directory, file)
     return japanese_file or english_file
 
-# 📌 Keresünk fordítandó fájlt
 INPUT_FILE = find_ass_file(DATA_DIR)
 
 if not INPUT_FILE:
@@ -112,7 +105,6 @@ if not INPUT_FILE:
     log_tech(LOG_NAME, "Hiányzik .ass fájl a data mappából.")
     exit(1)
 
-# 📌 Modell kiválasztása fájlnév alapján
 if "_english" in INPUT_FILE:
     MODEL = MODEL_ENG
 elif "_japanese" in INPUT_FILE:
@@ -122,7 +114,6 @@ else:
     log_tech(LOG_NAME, f"Ismeretlen fájlnév: {INPUT_FILE}")
     exit(1)
 
-# 📌 Költségbecslés a fájl alapján (valósághű modell szerint)
 ass_lines = extract_lines_from_ass(INPUT_FILE)
 translatables = extract_translatables(ass_lines)
 input_tokens, output_tokens = estimate_token_count_precise(translatables, MODEL, BATCH_SIZE)
@@ -130,7 +121,6 @@ cost = calculate_cost(input_tokens, output_tokens, MODEL)
 log_user_print(LOG_NAME, f"💡 Becsült fordítási költség: {cost:.2f} USD ({input_tokens} input token, {output_tokens} output token, modell: {MODEL})")
 log_cost_estimate(MODEL, input_tokens, output_tokens, cost, accepted=True)
 
-# 📌 Kimeneti fájl neve
 OUTPUT_FILE = INPUT_FILE.replace("_english", "_hungarian").replace("_japanese", "_hungarian")
 
 log_user_print(LOG_NAME, f"✅ Talált feliratfájl: {INPUT_FILE}")
@@ -154,7 +144,6 @@ def translate_with_openai(text_list):
                 {"role": "user", "content": delimiter.join(text_list)}
             ]
         )
-        # 🔢 Valós tokenhasználat logolása
         if hasattr(response, "usage"):
             log_tech(LOG_NAME, f"[USAGE] prompt: {response.usage['prompt_tokens']}, completion: {response.usage['completion_tokens']}, total: {response.usage['total_tokens']}")
 
@@ -186,13 +175,13 @@ batch = []
 original_prefixes = []
 dialogue_count = sum(1 for line in lines if line.strip().lower().startswith("dialogue:"))
 
-from tqdm import tqdm
 with tqdm(total=dialogue_count, desc="🔄 Fordítás folyamatban", unit="sor") as pbar:
     for line in lines:
         if line.strip().lower().startswith("dialogue:"):
-            parts = line.split(",", 10)
-            if len(parts) >= 2:
-                name = parts[4].strip()
+            if "\p" in line or (" m " in line and "\p" not in line and "\\N" not in line):
+                translated_lines.append(line)
+                pbar.update(1)
+                continue
 
             last_comma_idx = line.rfind(",,")
             if last_comma_idx != -1:
@@ -201,15 +190,6 @@ with tqdm(total=dialogue_count, desc="🔄 Fordítás folyamatban", unit="sor") 
 
                 batch.append(text_to_translate)
                 original_prefixes.append(prefix)
-
-                if len(batch) >= BATCH_SIZE:
-                    translated_batch = translate_with_openai(batch)
-                    for j in range(min(len(original_prefixes), len(translated_batch))):
-                        translated_lines.append(f"{original_prefixes[j]}{translated_batch[j]}\n")
-                        pbar.update(1)
-                    batch = []
-                    original_prefixes = []
-                    time.sleep(1)
             else:
                 translated_lines.append(line)
                 pbar.update(1)
