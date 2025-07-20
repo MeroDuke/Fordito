@@ -1,102 +1,105 @@
-# scripts/fix_overlay_sign_lines.py
-
+#!/usr/bin/env python3
 import os
 import re
 from pathlib import Path
 
-DATA_DIR = Path(__file__).resolve().parents[1] / "data"
+# 📌 A data könyvtár, ahol az .ass fájlok vannak
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_DIR = SCRIPT_DIR.parent
+DATA_DIR = PROJECT_DIR / "data"
 
-# 📌 Az angol és magyar fájlok detektálása
+# ———————————————— 
+# Fájlok megtalálása
 english_file = None
 hungarian_file = None
-for file in os.listdir(DATA_DIR):
-    if file.endswith("_english.ass"):
-        english_file = DATA_DIR / file
-    elif file.endswith("_hungarian_styled.ass") and not file.endswith("_fixed.ass"):
-        hungarian_file = DATA_DIR / file
+for fn in os.listdir(DATA_DIR):
+    if fn.endswith("_english.ass"):
+        english_file = DATA_DIR / fn
+    elif fn.endswith("_hungarian_styled.ass") and not fn.endswith("_fixed.ass"):
+        hungarian_file = DATA_DIR / fn
 
 if not english_file or not hungarian_file:
-    print("❌ Nem található mindkét fájl (english és hungarian). Kilépés.")
+    print("❌ Nem található mindkét fájl (…_english.ass és …_hungarian_styled.ass)")
     exit(1)
 
 output_file = hungarian_file.with_name(hungarian_file.stem + "_fixed.ass")
 
-# 📌 Betöltjük a fájlokat
+# ———————————————— 
+# Beolvasás
 with open(english_file, encoding="utf-8") as f:
-    english_lines = f.readlines()
-
+    en_lines = f.readlines()
 with open(hungarian_file, encoding="utf-8") as f:
-    hungarian_lines = f.readlines()
+    hu_lines = f.readlines()
 
-# 📌 Kinyerjük az angol sign_generic sorokat időbélyeg alapján, listába rendezve
-sign_map = {}
-for line in english_lines:
-    if line.lower().startswith("dialogue:"):
-        parts = line.strip().split(",", 9)
-        if len(parts) >= 10 and parts[3].strip() == "sign_generic":
-            start = parts[1].strip()
-            end = parts[2].strip()
-            style = parts[3].strip()
-            name = parts[4].strip()
-            override_match = re.match(r"^(\{.*?\})", parts[9].strip())
-            override = override_match.group(1) if override_match else ""
-            en_text = parts[9].strip()[len(override):]
-            sign_map.setdefault((start, end), []).append((style, override, en_text))
+# ———————————————— 
+# Map építése: kulcs = (start, end), érték = listák az override blokkokból és style-okból
+override_map = {}  # (start,end) -> [ "{…}{…}", … ]
+style_map    = {}  # (start,end) -> [ "Text", "sign_generic", … ]
 
-# 📌 Magyar sorok feldolgozása
-output_lines = []
-match_counters = {}
-for hu_line in hungarian_lines:
-    if hu_line.lower().startswith("dialogue:"):
-        parts = hu_line.strip().split(",", 9)
-        if len(parts) >= 10:
-            start = parts[1].strip()
-            end = parts[2].strip()
-            key = (start, end)
-            if key in sign_map:
-                match_counters.setdefault(key, 0)
-                index = match_counters[key]
-                if index < len(sign_map[key]):
-                    style, override, en_text = sign_map[key][index]
-                    match_counters[key] += 1
+for line in en_lines:
+    if not line.lower().startswith("dialogue:"):
+        continue
+    parts = line.rstrip("\n").split(",", 9)
+    if len(parts) < 10:
+        continue
 
-                    if parts[4].strip():
-                        parts[3] = style
+    start, end = parts[1].strip(), parts[2].strip()
+    style      = parts[3].strip()
+    text_field = parts[9]
 
-                    hu_text = parts[9].strip()
+    # Az első egymás után következő {…}{…} blokk kinyerése
+    override = ""
+    m = re.match(r"(\{[^}]*\})+", text_field)
+    if m:
+        override = m.group(0)
 
-                    if "\\N" in en_text:
-                        en_chunks = en_text.split("\\N")
-                        num_chunks = len(en_chunks)
-                        hu_chunks = hu_text.split("\\N")
+    if override:
+        key = (start, end)
+        override_map.setdefault(key, []).append(override)
+        style_map   .setdefault(key,    []).append(style)
 
-                        if len(hu_chunks) == num_chunks:
-                            hu_text_with_breaks = "\\N".join(hu_chunks)
-                        else:
-                            hu_words = hu_text.split()
-                            if len(hu_words) >= num_chunks:
-                                base = len(hu_words) // num_chunks
-                                extras = len(hu_words) % num_chunks
-                                sizes = [base + (1 if i < extras else 0) for i in range(num_chunks)]
-                                chunks = []
-                                idx = 0
-                                for size in sizes:
-                                    chunk = " ".join(hu_words[idx:idx + size])
-                                    chunks.append(chunk)
-                                    idx += size
-                                hu_text_with_breaks = "\\N".join(chunks)
-                            else:
-                                hu_text_with_breaks = hu_text.strip()
-                    else:
-                        hu_text_with_breaks = hu_text.strip()
+# ———————————————— 
+# Magyar sorok feldolgozása: újraírás override-dal + style-al
+output = []
+counters = {}  # számláló minden key-hez, hogy idempotens legyen
 
-                    parts[9] = f"{override}{hu_text_with_breaks}"
-                    output_lines.append(",".join(parts) + "\n")
-                    continue
-        output_lines.append(hu_line)
-    else:
-        output_lines.append(hu_line)
+for hline in hu_lines:
+    if not hline.lower().startswith("dialogue:"):
+        output.append(hline)
+        continue
 
-# 📌 Mentés
+    parts = hline.rstrip("\n").split(",", 9)
+    if len(parts) < 10:
+        output.append(hline)
+        continue
+
+    start, end = parts[1].strip(), parts[2].strip()
+    key = (start, end)
+
+    if key in override_map:
+        idx = counters.get(key, 0)
+        if idx < len(override_map[key]):
+            override = override_map[key][idx]
+            style    = style_map[key][idx]
+            counters[key] = idx + 1
+
+            # Ha még nincs benne, illesszük be
+            if not parts[9].startswith(override):
+                # visszaírjuk az override blokkot
+                parts[9] = override + parts[9].strip()
+            # ha van beszélőnév (parts[4]), akkor style-t is állítjuk
+            if parts[4].strip():
+                parts[3] = style
+
+            output.append(",".join(parts) + "\n")
+            continue
+
+    # semmi sem illeszkedik → eredeti sort írjuk
+    output.append(hline)
+
+# ———————————————— 
+# Mentés
 with open(output_file, "w", encoding="utf-8") as f:
-    f.writelines(output_lines)
+    f.writelines(output)
+
+print(f"✅ Felülírt override-ok visszaillesztve: {output_file}")
